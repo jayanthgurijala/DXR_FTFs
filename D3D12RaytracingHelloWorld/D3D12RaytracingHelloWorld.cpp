@@ -27,6 +27,7 @@ const wchar_t* D3D12RaytracingHelloWorld::c_raygenShaderName = L"MyRaygenShader"
 const wchar_t* D3D12RaytracingHelloWorld::c_closestHitShaderName = L"MyClosestHitShader";
 const wchar_t* D3D12RaytracingHelloWorld::c_closestHitShaderNameRed = L"MyClosestHitShaderRed";
 const wchar_t* D3D12RaytracingHelloWorld::c_intersectionShaderName = L"MyIntersectionShader";
+const wchar_t* D3D12RaytracingHelloWorld::c_closestHitIntersectionShaderName = L"MyClosestHitIntersectionShader";
 const wchar_t* D3D12RaytracingHelloWorld::c_missShaderName = L"MyMissShader";
 
 D3D12RaytracingHelloWorld::D3D12RaytracingHelloWorld(UINT width, UINT height, std::wstring name) :
@@ -191,6 +192,7 @@ void D3D12RaytracingHelloWorld::CreateRaytracingPipelineStateObject()
         lib->DefineExport(c_missShaderName);
         lib->DefineExport(c_closestHitShaderNameRed);
         lib->DefineExport(c_intersectionShaderName);
+        lib->DefineExport(c_closestHitIntersectionShaderName);
     }
     
     // Triangle hit group
@@ -213,13 +215,11 @@ void D3D12RaytracingHelloWorld::CreateRaytracingPipelineStateObject()
 
     {
         auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-        hitGroup->SetClosestHitShaderImport(c_closestHitShaderName);
+        hitGroup->SetClosestHitShaderImport(c_closestHitIntersectionShaderName);
         hitGroup->SetIntersectionShaderImport(c_intersectionShaderName);
         hitGroup->SetHitGroupExport(c_hitGroupNameAABB);
         hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
     }
-
-
     
     // Shader config
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.
@@ -436,6 +436,9 @@ void D3D12RaytracingHelloWorld::BuildModelGeometry(ComPtr<ID3D12Resource> *verte
 
     AllocateUploadBuffer(device, vertices, numVertices * sizeof(Vertex), vertexBuffer->GetAddressOf());
     AllocateUploadBuffer(device, indices, numIndices * sizeof(Index), indexBuffer->GetAddressOf());
+
+    free(vertices);
+    free(indices);
 }
 
 void D3D12RaytracingHelloWorld::GetTransform3x4Matrix(XMMATRIX* transformMatrix,
@@ -947,7 +950,9 @@ void D3D12RaytracingHelloWorld::OnRender()
 
         UINT psw = scanlinebytes + padding;
         newSize = psw * imgHeightInPixels;
+
         BYTE* bmpBuffer = (BYTE*)malloc(newSize);
+
         memset(bmpBuffer, 0, newSize);
 
         LONG bufpos = 0;
@@ -970,6 +975,8 @@ void D3D12RaytracingHelloWorld::OnRender()
         
         DeviceResources::SaveImage("D:\\LearnDx12\\RayTracingFTFs\\Test.bmp", bmpBuffer, scBufferInfo->width, scBufferInfo->height);
         pScreenShotRes->Unmap(0, nullptr);
+        free(bmpBuffer);
+        free(bgraBuffer);
     }
     
 }

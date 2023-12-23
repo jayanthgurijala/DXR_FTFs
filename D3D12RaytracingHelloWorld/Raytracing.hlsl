@@ -78,6 +78,20 @@ void MyClosestHitShaderRed(inout RayPayload payload, in MyAttributes attr)
     payload.color = float4(1, 0, 0, 1);
 }
 
+[shader("closesthit")]
+void MyClosestHitIntersectionShader(inout RayPayload payload, in MyAttributes attr)
+{
+    uint hitKind = HitKind();
+    if (hitKind == 0)
+    {
+        payload.color = float4(0, 0, 1, 1);
+    }
+    else
+    {
+        payload.color = float4(0.1f, 0.2f, 0.4f, 1);
+    }
+}
+
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
@@ -102,6 +116,10 @@ void MyIntersectionShader()
     if (sqX + sqY < sqRadius )
     {
         ReportHit(0.1f, /*hitKind*/ 0, attr);
+    }
+    else
+    {
+        ReportHit(0.1f, /*hitKind*/ 1, attr);
     }
 }
 

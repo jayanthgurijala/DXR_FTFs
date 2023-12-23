@@ -131,6 +131,7 @@ private:
     static const wchar_t* c_missShaderName;
     static const wchar_t* c_intersectionShaderName;
     static const wchar_t* c_hitGroupNameAABB;
+    static const wchar_t* c_closestHitIntersectionShaderName;
 
     ComPtr<ID3D12Resource> m_missShaderTable;
     ComPtr<ID3D12Resource> m_hitGroupShaderTable;
