@@ -59,7 +59,7 @@ struct DxTlasDesc
 {
     UINT blasIndex;
     UINT instanceContributionToHitIndex;
-    DirectX::XMMATRIX transformMatrix;
+    XMFLOAT3X4 transformMatrix;
 };
 
 
@@ -180,7 +180,7 @@ private:
     
     void GetAABBBoundingBox(D3D12_RAYTRACING_AABB& aabbBox, FLOAT scale, FLOAT indexX, FLOAT indexY);
  
-    void GetTransform3x4Matrix(XMMATRIX* transformMatrix,
+    void GetTransform3x4Matrix(XMFLOAT3X4* transformMatrix,
         float scale,
         float transformX,
         float transformY,

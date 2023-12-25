@@ -444,7 +444,7 @@ void D3D12RaytracingHelloWorld::BuildModelGeometry(ComPtr<ID3D12Resource> *verte
     free(indices);
 }
 
-void D3D12RaytracingHelloWorld::GetTransform3x4Matrix(XMMATRIX* transformMatrix,
+void D3D12RaytracingHelloWorld::GetTransform3x4Matrix(XMFLOAT3X4* transformMatrix,
                                                       float scale,
                                                       float transformX,
                                                       float transformY,
@@ -656,8 +656,8 @@ void D3D12RaytracingHelloWorld::BuildAccelerationStructures()
         D3D12_RAYTRACING_INSTANCE_DESC &instanceDesc = listOfInstanceDesc[count];
         memset(&instanceDesc, 0, sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
         // Create an instance desc for the bottom-level acceleration structure.
-        //XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), tlasDesc.transformMatrix);
-        instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+        memcpy(&instanceDesc.Transform, &tlasDesc.transformMatrix, sizeof(tlasDesc.transformMatrix));
+        //instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
         instanceDesc.InstanceMask = ~0;
         instanceDesc.InstanceContributionToHitGroupIndex = tlas.instanceContributionToHitIndex;
         instanceDesc.AccelerationStructure = m_listofBlasBuffersInfo[tlas.blasIndex].accelerationStructure->GetGPUVirtualAddress();
