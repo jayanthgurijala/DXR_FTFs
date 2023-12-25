@@ -82,9 +82,9 @@ void D3D12RaytracingHelloWorld::CreateDeviceDependentResources()
     CreateDescriptorHeap();
 
     // Build geometry to be used in the sample.
-    BuildModelGeometry(&m_vertexBuffer[0], &m_indexBuffer[0], TriangleModel, 0.5, 0, 0);
-    BuildModelGeometry(&m_vertexBuffer[1], &m_indexBuffer[1], SquareModel, 0.5, 1, 0);
-    BuildModelGeometryAABB(&m_aabbBuffer, 0.5, 0, 1);
+    BuildModelGeometry(&m_vertexBuffer[0], &m_indexBuffer[0], TriangleModel, 0.5, 0, 0, 0.2f);
+    BuildModelGeometry(&m_vertexBuffer[1], &m_indexBuffer[1], SquareModel, 0.5, 0.5f, 0, 0.8f);
+    BuildModelGeometryAABB(&m_aabbBuffer, 0.5, 0, 0.5f, 1.0f);
 
     // Build raytracing acceleration structures from the generated geometry.
     BuildAccelerationStructures();
@@ -292,7 +292,7 @@ void D3D12RaytracingHelloWorld::CreateDescriptorHeap()
     m_descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
-void D3D12RaytracingHelloWorld::GetAABBBoundingBox(D3D12_RAYTRACING_AABB &aabbBox, float scale, UINT indexX, UINT indexY)
+void D3D12RaytracingHelloWorld::GetAABBBoundingBox(D3D12_RAYTRACING_AABB &aabbBox, FLOAT scale, FLOAT indexX, FLOAT indexY)
 {
     float translateX = -1 + scale + indexX * scale * 2;
     float translateY = -1 + scale + indexY * scale * 2;
@@ -315,15 +315,16 @@ void D3D12RaytracingHelloWorld::GetGeometryIndicesAndVertices(ModelGeometry geom
                                                               UINT* outNumIndices,
                                                               Vertex** outVertices,
                                                               Index** outIndices,
-                                                              float scale,
-                                                              UINT indexX,
-                                                              UINT indexY)
+                                                              FLOAT scale,
+                                                              FLOAT indexX,
+                                                              FLOAT indexY,
+                                                              FLOAT zPos)
 {
     float translateX = -1 + scale + indexX * scale * 2;
     float translateY = -1 + scale + indexY * scale * 2;
     float border = 0.03f;
 
-    float depthValue = 1.0;
+    float depthValue = zPos;
 
     float offset = scale - border;
 
@@ -407,8 +408,9 @@ void D3D12RaytracingHelloWorld::GetGeometryIndicesAndVertices(ModelGeometry geom
 
 void D3D12RaytracingHelloWorld::BuildModelGeometryAABB(ComPtr<ID3D12Resource>* aabbBuffer,
     FLOAT scale,
-    UINT indexX,
-    UINT indexY)
+    FLOAT indexX,
+    FLOAT indexY,
+    FLOAT zPos)
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -423,8 +425,9 @@ void D3D12RaytracingHelloWorld::BuildModelGeometry(ComPtr<ID3D12Resource> *verte
                                                    ComPtr<ID3D12Resource> *indexBuffer,
                                                    ModelGeometry modelType,
                                                    FLOAT scale,
-                                                   UINT indexX,
-                                                   UINT indexY)
+                                                   FLOAT indexX,
+                                                   FLOAT indexY,
+                                                   FLOAT zPos)
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -432,7 +435,7 @@ void D3D12RaytracingHelloWorld::BuildModelGeometry(ComPtr<ID3D12Resource> *verte
     UINT numVertices = 0;
     Vertex* vertices;
     Index* indices;
-    GetGeometryIndicesAndVertices(modelType, &numVertices, &numIndices, &vertices, &indices, scale, indexX, indexY);
+    GetGeometryIndicesAndVertices(modelType, &numVertices, &numIndices, &vertices, &indices, scale, indexX, indexY, zPos);
 
     AllocateUploadBuffer(device, vertices, numVertices * sizeof(Vertex), vertexBuffer->GetAddressOf());
     AllocateUploadBuffer(device, indices, numIndices * sizeof(Index), indexBuffer->GetAddressOf());
@@ -793,7 +796,7 @@ void D3D12RaytracingHelloWorld::DoRaytracing()
 void D3D12RaytracingHelloWorld::UpdateForSizeChange(UINT width, UINT height)
 {
     DXSample::UpdateForSizeChange(width, height);
-    float border = 0.1;
+    FLOAT border = 0.1f;
     if (m_width <= m_height)
     {
         m_rayGenCB.stencil =
@@ -925,7 +928,7 @@ void D3D12RaytracingHelloWorld::OnRender()
     const UINT imgWidthInPixels          = scBufferInfo->width;
     const UINT imgHeightInPixels         = scBufferInfo->height;
     const UINT numRowsInFootprint        = scBufferInfo->numRows;
-    const UINT rowSizeInBuffer           = scBufferInfo->rowSize;
+    const UINT64 rowSizeInBuffer         = scBufferInfo->rowSize;
 
     BYTE* pMappedData = NULL;
     HRESULT mapResult = pScreenShotRes->Map(0, nullptr, (void **)&pMappedData);

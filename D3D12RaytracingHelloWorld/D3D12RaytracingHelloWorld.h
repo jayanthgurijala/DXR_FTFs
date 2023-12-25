@@ -158,15 +158,27 @@ private:
                             ComPtr<ID3D12Resource> *indexBuffer,
                             ModelGeometry geometry,
                             FLOAT scale,
-                            UINT indexX,
-                            UINT indexY);
+                            FLOAT indexX,
+                            FLOAT indexY,
+                            FLOAT zPos);
+
     void BuildModelGeometryAABB(ComPtr<ID3D12Resource> *aabbBuffer,
                                 FLOAT scale,
-                                UINT indexX,
-                                UINT indexY);
+                                FLOAT indexX,
+                                FLOAT indexY,
+                                FLOAT zPos);
     
-    void GetGeometryIndicesAndVertices(ModelGeometry geometry, UINT* numVertices, UINT* numIndices, Vertex** vertices, Index** indices, float scale, UINT indexX, UINT indexY);
-    void GetAABBBoundingBox(D3D12_RAYTRACING_AABB& aabbBox, FLOAT scale, UINT indexX, UINT indexY);
+    void GetGeometryIndicesAndVertices(ModelGeometry geometry,
+                                       UINT*         numVertices,
+                                       UINT*         numIndices,
+                                       Vertex**      vertices,
+                                       Index**       indices,
+                                       FLOAT         scale,
+                                       FLOAT         indexX,
+                                       FLOAT         indexY,
+                                       FLOAT         zPos);
+    
+    void GetAABBBoundingBox(D3D12_RAYTRACING_AABB& aabbBox, FLOAT scale, FLOAT indexX, FLOAT indexY);
  
     void GetTransform3x4Matrix(XMMATRIX* transformMatrix,
         float scale,
