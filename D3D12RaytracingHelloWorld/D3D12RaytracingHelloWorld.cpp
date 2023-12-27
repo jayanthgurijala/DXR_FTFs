@@ -83,8 +83,10 @@ void D3D12RaytracingHelloWorld::CreateDeviceDependentResources()
 
     // Build geometry to be used in the sample.
     BuildModelGeometry(&m_vertexBuffer[0], &m_indexBuffer[0], TriangleModel, 0.5, 0, 0, 0.2f);
-    BuildModelGeometry(&m_vertexBuffer[1], &m_indexBuffer[1], SquareModel, 0.5, 0.5f, 0, 0.8f);
-    BuildModelGeometryAABB(&m_aabbBuffer, 0.5, 0, 0.5f, 1.0f);
+    BuildModelGeometry(&m_vertexBuffer[1], &m_indexBuffer[1], SquareModel, 0.5, 1.0f, 0, 0.8f);
+    BuildModelGeometryAABB(&m_aabbBuffer, 0.5, 0, 1.0f, 1.0f);
+
+    CreateTestCase();
 
     // Build raytracing acceleration structures from the generated geometry.
     BuildAccelerationStructures();
@@ -458,6 +460,58 @@ void D3D12RaytracingHelloWorld::GetTransform3x4Matrix(XMFLOAT3X4* transformMatri
     XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(transformMatrix), mTransform);
 }
 
+void D3D12RaytracingHelloWorld::CreateTestCase()
+{
+
+    auto AddGeometryDesc = [&](UINT index,
+                               D3D12_RAYTRACING_GEOMETRY_TYPE geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES,
+                               D3D12_RAYTRACING_GEOMETRY_FLAGS flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE)
+    {
+        GeomDesc geomDesc;
+        geomDesc.geomIndex = index;
+        geomDesc.geomType = geomType;
+        geomDesc.flags = flags;
+        m_geomDescs.push_back(geomDesc);
+    };
+
+    auto AddBlasDesc = [&](const std::initializer_list<UINT>& geomIndices, UINT numIndices = 1, D3D12_RAYTRACING_GEOMETRY_TYPE type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES)
+    {
+        DxBlasDesc blasDesc;
+        blasDesc.geomType = type;
+        for (UINT x : geomIndices)
+        {
+            blasDesc.geomIndices.push_back(x);
+        }
+        m_listOfBlasDesc.push_back(blasDesc);
+    };
+
+    auto AddTlasDesc = [&](UINT blasIndex,
+                           UINT hitIndexContribution = 0,
+                           FLOAT scale = 1.0f,
+                           FLOAT translateX = 0.0f,
+                           FLOAT translateY = 0.0f,
+                           FLOAT translateZ = 0.0f)
+    {
+        DxTlasDesc tlasDesc;
+        tlasDesc.blasIndex = blasIndex;
+        tlasDesc.instanceContributionToHitIndex = hitIndexContribution;
+        GetTransform3x4Matrix(&tlasDesc.transformMatrix, scale, translateX, translateY, translateZ);
+        m_listOfTlasDesc.push_back(tlasDesc);
+    };
+
+    AddGeometryDesc(0);
+    AddGeometryDesc(1);
+    AddGeometryDesc(0, D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS);
+
+    AddBlasDesc({ 0 });
+    AddBlasDesc({ 1 });
+    AddBlasDesc({ 2 }, D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS);
+
+    AddTlasDesc(0);
+    AddTlasDesc(1, 1);
+    AddTlasDesc(2, 2);
+}
+
 // Build acceleration structures needed for raytracing.
 void D3D12RaytracingHelloWorld::BuildAccelerationStructures()
 {
@@ -467,62 +521,6 @@ void D3D12RaytracingHelloWorld::BuildAccelerationStructures()
     auto commandAllocator = m_deviceResources->GetCommandAllocator();
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-
-    GeomDesc geomDesc;
-    geomDesc.geomIndex = 0;
-    geomDesc.geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-    geomDesc.flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-    m_geomDescs.push_back(geomDesc);
-
-    GeomDesc geomDesc1;
-    geomDesc1.geomIndex = 1;
-    geomDesc1.geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-    geomDesc1.flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-    m_geomDescs.push_back(geomDesc1);
-
-    GeomDesc geomDesc2;
-    geomDesc2.geomIndex = 0;
-    geomDesc2.geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-    geomDesc2.flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-    m_geomDescs.push_back(geomDesc2);
-
-    vector<DxBlasDesc> listOfBlasDesc;
-
-    DxBlasDesc blasDesc;
-    blasDesc.geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-    blasDesc.geomIndices.push_back(0);
-    listOfBlasDesc.push_back(blasDesc);
-
-    DxBlasDesc blasDesc1;
-    blasDesc1.geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-    blasDesc1.geomIndices.push_back(1);
-    listOfBlasDesc.push_back(blasDesc1);
-
-    DxBlasDesc blasDesc2;
-    blasDesc2.geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-    blasDesc2.geomIndices.push_back(2);
-    listOfBlasDesc.push_back(blasDesc2);
-
-    vector<DxTlasDesc> listOfTlasDesc;
-    DxTlasDesc tlasDesc;
-    tlasDesc.blasIndex = 0;
-    tlasDesc.instanceContributionToHitIndex = 0;
-    GetTransform3x4Matrix(&tlasDesc.transformMatrix, 1.0f, 0, 0, 0);
-    listOfTlasDesc.push_back(tlasDesc);
-
-    DxTlasDesc tlasDesc1;
-    tlasDesc1.blasIndex  = 1;
-    tlasDesc1.instanceContributionToHitIndex = 1;
-    GetTransform3x4Matrix(&tlasDesc1.transformMatrix, 1.0f, 0, 0, 0);
-    listOfTlasDesc.push_back(tlasDesc1);
-
-    DxTlasDesc tlasDesc2;
-    tlasDesc2.blasIndex = 2;
-    tlasDesc2.instanceContributionToHitIndex = 2;
-    GetTransform3x4Matrix(&tlasDesc2.transformMatrix, 1.0f, 0, 0, 0);
-    listOfTlasDesc.push_back(tlasDesc2);
-
-
 
     // Reset the command list for the acceleration structure construction.
     commandList->Reset(commandAllocator, nullptr);
@@ -570,10 +568,10 @@ void D3D12RaytracingHelloWorld::BuildAccelerationStructures()
     UINT64 totalBLASScratchSize = 0;
     UINT64 totalBLASResultSize = 0;
 
-    m_listofBlasBuffersInfo.resize(listOfBlasDesc.capacity());
+    m_listofBlasBuffersInfo.resize(m_listOfBlasDesc.capacity());
 
     UINT count = 0;
-    for (DxBlasDesc blas : listOfBlasDesc)
+    for (DxBlasDesc blas : m_listOfBlasDesc)
     {
         AccelerationStructureBuffers &blasBufferInfo = m_listofBlasBuffersInfo[count];
         count++;
@@ -623,7 +621,7 @@ void D3D12RaytracingHelloWorld::BuildAccelerationStructures()
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
     topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     topLevelInputs.Flags = buildFlags;
-    topLevelInputs.NumDescs = listOfTlasDesc.capacity();
+    topLevelInputs.NumDescs = m_listOfTlasDesc.capacity();
     topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
@@ -645,19 +643,20 @@ void D3D12RaytracingHelloWorld::BuildAccelerationStructures()
         AllocateUAVBuffer(device, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &m_topLevelAccelerationStructure, initialResourceState, L"TopLevelAccelerationStructure");
     }
 
-    UINT numTlasInstances         = listOfTlasDesc.capacity();
+    UINT numTlasInstances         = m_listOfTlasDesc.capacity();
     UINT sizeOfInstanceDescBuffer = numTlasInstances * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
     count                    = 0;
     ComPtr<ID3D12Resource> instanceDescs;
     D3D12_RAYTRACING_INSTANCE_DESC* listOfInstanceDesc = (D3D12_RAYTRACING_INSTANCE_DESC*)malloc(sizeOfInstanceDescBuffer);
 
-    for (DxTlasDesc tlas : listOfTlasDesc)
+    for (DxTlasDesc tlas : m_listOfTlasDesc)
     {
         D3D12_RAYTRACING_INSTANCE_DESC &instanceDesc = listOfInstanceDesc[count];
         memset(&instanceDesc, 0, sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
+
         // Create an instance desc for the bottom-level acceleration structure.
-        memcpy(&instanceDesc.Transform, &tlasDesc.transformMatrix, sizeof(tlasDesc.transformMatrix));
-        //instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+        memcpy(&instanceDesc.Transform, &tlas.transformMatrix, sizeof(tlas.transformMatrix));
+
         instanceDesc.InstanceMask = ~0;
         instanceDesc.InstanceContributionToHitGroupIndex = tlas.instanceContributionToHitIndex;
         instanceDesc.AccelerationStructure = m_listofBlasBuffersInfo[tlas.blasIndex].accelerationStructure->GetGPUVirtualAddress();
@@ -893,6 +892,9 @@ void D3D12RaytracingHelloWorld::ReleaseDeviceDependentResources()
 
     m_accelerationStructure.Reset();
     m_topLevelAccelerationStructure.Reset();
+
+    m_listOfTlasDesc.clear();
+    m_listOfBlasDesc.clear();
 }
 
 void D3D12RaytracingHelloWorld::RecreateD3D()

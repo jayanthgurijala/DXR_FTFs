@@ -98,6 +98,9 @@ private:
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
     UINT m_descriptorsAllocated;
     UINT m_descriptorSize;
+    vector<DxTlasDesc> m_listOfTlasDesc;
+    vector<DxBlasDesc> m_listOfBlasDesc;
+    vector<GeomDesc> m_geomDescs;
     
     // Raytracing scene
     RayGenConstantBuffer m_rayGenCB;
@@ -136,7 +139,6 @@ private:
     ComPtr<ID3D12Resource> m_missShaderTable;
     ComPtr<ID3D12Resource> m_hitGroupShaderTable;
     ComPtr<ID3D12Resource> m_rayGenShaderTable;
-    std::vector<GeomDesc> m_geomDescs;
     
     // Application state
     StepTimer m_timer;
@@ -191,4 +193,5 @@ private:
     void CopyRaytracingOutputToBackbuffer();
     void CalculateFrameStats();
     UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
+    void CreateTestCase();
 };
