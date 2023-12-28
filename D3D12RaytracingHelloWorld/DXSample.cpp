@@ -22,6 +22,7 @@ DXSample::DXSample(UINT width, UINT height, std::wstring name) :
     m_title(name),
     m_aspectRatio(0.0f),
     m_enableUI(true),
+    m_numFrames(1),
     m_adapterIDoverride(UINT_MAX)
 {
     WCHAR assetsPath[512];
@@ -60,21 +61,29 @@ void DXSample::SetCustomWindowText(LPCWSTR text)
 _Use_decl_annotations_
 void DXSample::ParseCommandLineArgs(WCHAR* argv[], int argc)
 {
+    auto CheckCommandLineArg = [&](const wchar_t* arg, const wchar_t* option)->bool
+    {
+        return ((_wcsnicmp(arg, option, wcslen(option)) == 0 ||
+                 _wcsnicmp(arg, option, wcslen(option)) == 0));
+    };
+
     for (int i = 1; i < argc; ++i)
     {
-        // -disableUI
-        if (_wcsnicmp(argv[i], L"-disableUI", wcslen(argv[i])) == 0 ||
-            _wcsnicmp(argv[i], L"/disableUI", wcslen(argv[i])) == 0)
+
+        if (CheckCommandLineArg(argv[i], L"-disableUI"))
         {
             m_enableUI = false;
         }
-        // -forceAdapter [id]
-        else if (_wcsnicmp(argv[i], L"-forceAdapter", wcslen(argv[i])) == 0 ||
-            _wcsnicmp(argv[i], L"/forceAdapter", wcslen(argv[i])) == 0)
+        else if (CheckCommandLineArg(argv[i], L"-forceAdapter"))
         {
             ThrowIfFalse(i + 1 < argc, L"Incorrect argument format passed in.");
-            
+
             m_adapterIDoverride = _wtoi(argv[i + 1]);
+            i++;
+        }
+        else if (CheckCommandLineArg(argv[i], L"-f"))
+        {
+            m_numFrames = _wtoi(argv[i + 1]);
             i++;
         }
     }

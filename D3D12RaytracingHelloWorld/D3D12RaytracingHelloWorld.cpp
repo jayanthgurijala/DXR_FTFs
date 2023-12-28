@@ -977,8 +977,11 @@ void D3D12RaytracingHelloWorld::OnRender()
                 bmpBuffer[bmppos + 0] = bgraBuffer[bufpos + 2];
             }
         }
+
+        CHAR fullBmpPath[512];
+        sprintf_s(fullBmpPath, 512, "D:\\Grinphx_Labs\\DXR_Screenshots\\Test.bmp");
         
-        DeviceResources::SaveImage("D:\\LearnDx12\\RayTracingFTFs\\Test.bmp", bmpBuffer, scBufferInfo->width, scBufferInfo->height);
+        DeviceResources::SaveImage(fullBmpPath, bmpBuffer, scBufferInfo->width, scBufferInfo->height);
         pScreenShotRes->Unmap(0, nullptr);
         free(bmpBuffer);
         free(bgraBuffer);

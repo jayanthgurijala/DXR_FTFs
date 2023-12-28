@@ -51,6 +51,11 @@ public:
     void SetWindowBounds(int left, int top, int right, int bottom);
     std::wstring GetAssetFullPath(LPCWSTR assetName);
 
+    UINT inline GetNumFrames()
+    {
+        return m_numFrames;
+    }
+
 protected:
     void SetCustomWindowText(LPCWSTR text);
 
@@ -64,7 +69,7 @@ protected:
     
     // Override to be able to start without Dx11on12 UI for PIX. PIX doesn't support 11 on 12. 
     bool m_enableUI;
-
+    UINT m_numFrames;
     // D3D device resources
     UINT m_adapterIDoverride;
     std::unique_ptr<DX::DeviceResources> m_deviceResources;
