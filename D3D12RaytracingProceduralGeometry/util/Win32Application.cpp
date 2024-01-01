@@ -185,7 +185,6 @@ void Win32Application::SetWindowZorderToTopMost(bool setToTopMost)
 LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     DXSample* pSample = reinterpret_cast<DXSample*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-    static UINT curFrames = 0;
 
     switch (message)
     {
@@ -200,10 +199,6 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
     case WM_KEYDOWN:
         if (pSample)
         {
-            if (wParam == VK_ESCAPE)
-            {
-                PostQuitMessage(0);
-            }
             pSample->OnKeyDown(static_cast<UINT8>(wParam));
         }
         return 0;
@@ -233,11 +228,6 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
         {
             pSample->OnUpdate();
             pSample->OnRender();
-            curFrames++;
-            if (pSample && pSample->GetNumFrames() > 0 && pSample->GetNumFrames() == curFrames)
-            {
-                PostQuitMessage(0);
-            }
         }
         return 0;
 

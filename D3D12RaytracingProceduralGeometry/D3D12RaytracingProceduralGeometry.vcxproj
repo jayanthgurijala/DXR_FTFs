@@ -11,10 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{5018F6A3-6533-4744-B1FD-727D199FD2E9}</ProjectGuid>
+    <ProjectGuid>{0C266269-AC0C-41B0-9D25-0117DC23CFC7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>D3D12Raytracing</RootNamespace>
-    <ProjectName>D3D12RaytracingHelloWorld</ProjectName>
+    <ProjectName>D3D12RaytracingProceduralGeometry</ProjectName>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -62,7 +62,8 @@
     </PostBuildEventUseInBuild>
     <PreBuildEventUseInBuild>
     </PreBuildEventUseInBuild>
-    <PreLinkEventUseInBuild />
+    <PreLinkEventUseInBuild>
+    </PreLinkEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -71,12 +72,10 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\Grinphx_Labs\DXR_FTF\GrfxTestFramework;..\;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Grinphx_Labs\DXR_FTF\GrfxTestFramework;util;..\;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -96,10 +95,6 @@
       <EntryPointName />
     </FxCompile>
     <PostBuildEvent>
-      <Command>
-      </Command>
-      <Message>
-      </Message>
     </PostBuildEvent>
     <PreLinkEvent>
       <Command>
@@ -110,8 +105,6 @@
       </Message>
     </PreLinkEvent>
     <PreBuildEvent>
-      <Command>
-      </Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>
@@ -127,7 +120,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>util;..\;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -149,41 +142,50 @@
     <FxCompile>
       <EntryPointName />
     </FxCompile>
+    <PostBuildEvent>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+      <Message>
+      </Message>
+    </PreBuildEvent>
+    <PreLinkEvent>
+      <Command>
+      </Command>
+    </PreLinkEvent>
+    <PreLinkEvent>
+      <Message>
+      </Message>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Utils\pugixml_1_14\src\pugiconfig.hpp" />
-    <ClInclude Include="..\..\Utils\pugixml_1_14\src\pugixml.hpp" />
+    <ClInclude Include="AnalyticPrimitives.hlsli" />
     <ClInclude Include="DirectXRaytracingHelper.h" />
-    <ClInclude Include="HlslCompat.h" />
+    <ClInclude Include="ProceduralPrimitivesLibrary.hlsli" />
+    <ClInclude Include="RaytracingSceneDefines.h" />
     <ClInclude Include="RaytracingHlslCompat.h" />
-    <ClInclude Include="StepTimer.h" />
-    <ClInclude Include="D3D12RaytracingHelloWorld.h" />
-    <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="RaytracingShaderHelper.hlsli" />
+    <ClInclude Include="D3D12RaytracingProceduralGeometry.h" />
+    <ClInclude Include="SignedDistanceFractals.hlsli" />
+    <ClInclude Include="SignedDistancePrimitives.hlsli" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="util\DeviceResources.h" />
+    <ClInclude Include="util\DXSampleHelper.h" />
+    <ClInclude Include="util\HlslCompat.h" />
+    <ClInclude Include="util\PerformanceTimers.h" />
+    <ClInclude Include="util\StepTimer.h" />
+    <ClInclude Include="util\Win32Application.h" />
+    <ClInclude Include="VolumetricPrimitives.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Utils\pugixml_1_14\src\pugixml.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderOutputFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderOutputFile>
-    </ClCompile>
-    <ClCompile Include="D3D12RaytracingHelloWorld.cpp" />
+    <ClCompile Include="D3D12RaytracingProceduralGeometry.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="readme.md" />
+    <ClCompile Include="util\PerformanceTimers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Raytracing.hlsl">
@@ -195,11 +197,17 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.3</ShaderModel>
       <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename)</VariableName>
       <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)CompiledShaders\%(Filename).hlsl.h</HeaderFileOutput>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zpr %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zpr %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="readme.md" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\GrfxTestFramework\GrfxTestFramework.vcxproj">
-      <Project>{13077087-4107-4233-a00d-4730fd883fae}</Project>
+      <Project>{ca2a50a5-1b63-45c1-b108-41d7ec62abc4}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

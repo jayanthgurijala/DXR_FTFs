@@ -1,0 +1,21 @@
+<testcase>
+<name>Simple Triangle</name>
+<geometry>
+<name>triangle</name>
+<model>tri</model>
+</geometry>
+<blas>
+<geoptr>triangle</geoptr>
+<type>d3d12_tri</type>
+</blas>
+<tlas>
+<instanceDesc>
+<scale>1.0f</scale>
+<translateX>0.0f</translateX>
+<translateY>0.0f</translateY>
+<translateZ>0.0f</translateZ>
+</instanceDesc>
+<blasptr>blas1</blasptr>
+<hitIndexContribution>0</hitIndexContribution>
+</tlas>
+</testcase>
