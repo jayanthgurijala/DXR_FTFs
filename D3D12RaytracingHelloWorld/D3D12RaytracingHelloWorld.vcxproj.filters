@@ -33,9 +33,6 @@
     <ClInclude Include="D3D12RaytracingHelloWorld.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXRaytracingHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="HlslCompat.h">
       <Filter>Assets\Shaders\Util</Filter>
     </ClInclude>
@@ -52,9 +49,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D3D12RaytracingHelloWorld.cpp">

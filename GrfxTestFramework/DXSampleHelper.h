@@ -196,7 +196,7 @@ inline Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(
 template<class T>
 void ResetComPtrArray(T* comPtrArray)
 {
-    for (auto &i : *comPtrArray)
+    for (auto& i : *comPtrArray)
     {
         i.Reset();
     }
@@ -207,7 +207,7 @@ void ResetComPtrArray(T* comPtrArray)
 template<class T>
 void ResetUniquePtrArray(T* uniquePtrArray)
 {
-    for (auto &i : *uniquePtrArray)
+    for (auto& i : *uniquePtrArray)
     {
         i.reset();
     }
@@ -218,7 +218,6 @@ class GpuUploadBuffer
 public:
     ComPtr<ID3D12Resource> GetResource() { return m_resource; }
     virtual void Release() { m_resource.Reset(); }
-
 protected:
     ComPtr<ID3D12Resource> m_resource;
 
@@ -264,11 +263,12 @@ struct D3DBuffer
 };
 
 // Helper class to create and update a constant buffer with proper constant buffer alignments.
-// Usage: ToDo
+// Usage: 
 //    ConstantBuffer<...> cb;
 //    cb.Create(...);
-//    cb.staging.var = ...; | cb->var = ... ; 
+//    cb.staging.var = ... ; | cb->var = ... ; 
 //    cb.CopyStagingToGPU(...);
+//    Set...View(..., cb.GputVirtualAddress());
 template <class T>
 class ConstantBuffer : public GpuUploadBuffer
 {
@@ -282,8 +282,8 @@ public:
     void Create(ID3D12Device* device, UINT numInstances = 1, LPCWSTR resourceName = nullptr)
     {
         m_numInstances = numInstances;
-        UINT alignedSize = Align(sizeof(T), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-        UINT bufferSize = numInstances * alignedSize;
+        m_alignedInstanceSize = Align(sizeof(T), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+        UINT bufferSize = numInstances * m_alignedInstanceSize;
         Allocate(device, bufferSize, resourceName);
         m_mappedConstantData = MapCpuWriteOnly();
     }
@@ -305,11 +305,12 @@ public:
 
 
 // Helper class to create and update a structured buffer.
-// Usage: ToDo
-//    ConstantBuffer<...> cb;
-//    cb.Create(...);
-//    cb.staging.var = ...; | cb->var = ... ; 
-//    cb.CopyStagingToGPU(...);
+// Usage: 
+//    StructuredBuffer<...> sb;
+//    sb.Create(...);
+//    sb[index].var = ... ; 
+//    sb.CopyStagingToGPU(...);
+//    Set...View(..., sb.GputVirtualAddress());
 template <class T>
 class StructuredBuffer : public GpuUploadBuffer
 {
@@ -334,7 +335,7 @@ public:
 
     void CopyStagingToGpu(UINT instanceIndex = 0)
     {
-        memcpy(m_mappedBuffers + instanceIndex, &m_staging[0], InstanceSize());
+        memcpy(m_mappedBuffers + instanceIndex * NumElementsPerInstance(), &m_staging[0], InstanceSize());
     }
 
     // Accessors

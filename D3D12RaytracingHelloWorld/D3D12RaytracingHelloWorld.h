@@ -76,15 +76,13 @@ public:
     // Messages
     virtual void OnInit();
     virtual void OnUpdate();
-    virtual void OnRender();
+    virtual void DoRaytracing();
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual void OnDestroy();
     virtual IDXGISwapChain* GetSwapchain() { return m_deviceResources->GetSwapChain(); }
+    virtual ID3D12DescriptorHeap* GetOutputDescriptorHeap();
 
 private:
-
-    static const UINT FrameCount = 3;
-        
     // DirectX Raytracing (DXR) attributes
     ComPtr<ID3D12Device5> m_dxrDevice;
     ComPtr<ID3D12GraphicsCommandList4> m_dxrCommandList;
@@ -96,7 +94,6 @@ private:
 
     // Descriptors
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
-    UINT m_descriptorsAllocated;
     UINT m_descriptorSize;
     vector<DxTlasDesc> m_listOfTlasDesc;
     vector<DxBlasDesc> m_listOfBlasDesc;
@@ -120,11 +117,6 @@ private:
     //ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
     ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
 
-    // Raytracing output
-    ComPtr<ID3D12Resource> m_raytracingOutput;
-    D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
-    UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
-
     // Shader tables
     static const wchar_t* c_hitGroupName;
     static const wchar_t* c_hitGroupNameRed;
@@ -144,7 +136,6 @@ private:
     StepTimer m_timer;
 
     void RecreateD3D();
-    void DoRaytracing();   
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
     void ReleaseDeviceDependentResources();
@@ -155,7 +146,6 @@ private:
     void CreateLocalRootSignatureSubobjects(CD3DX12_STATE_OBJECT_DESC* raytracingPipeline);
     void CreateRaytracingPipelineStateObject();
     void CreateDescriptorHeap();
-    void CreateRaytracingOutputResource();
     void BuildModelGeometry(ComPtr<ID3D12Resource> *vertexBuffer,
                             ComPtr<ID3D12Resource> *indexBuffer,
                             ModelGeometry geometry,
@@ -192,6 +182,5 @@ private:
     void UpdateForSizeChange(UINT clientWidth, UINT clientHeight);
     void CopyRaytracingOutputToBackbuffer();
     void CalculateFrameStats();
-    UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
     void CreateTestCase();
 };

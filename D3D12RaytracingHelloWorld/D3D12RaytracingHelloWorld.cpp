@@ -14,6 +14,7 @@
 #include "DirectXRaytracingHelper.h"
 #include "CompiledShaders\Raytracing.hlsl.h"
 #include "RaytracingHlslCompat.h"
+#include "FrameworkMain.h"
 
 
 using namespace std;
@@ -31,8 +32,7 @@ const wchar_t* D3D12RaytracingHelloWorld::c_closestHitIntersectionShaderName = L
 const wchar_t* D3D12RaytracingHelloWorld::c_missShaderName = L"MyMissShader";
 
 D3D12RaytracingHelloWorld::D3D12RaytracingHelloWorld(UINT width, UINT height, std::wstring name) :
-    DXSample(width, height, name),
-    m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX)
+    DXSample(width, height, name)
 {
     m_rayGenCB.viewport = { -1.0f, -1.0f, 1.0f, 1.0f };
     UpdateForSizeChange(width, height);
@@ -40,25 +40,7 @@ D3D12RaytracingHelloWorld::D3D12RaytracingHelloWorld(UINT width, UINT height, st
 
 void D3D12RaytracingHelloWorld::OnInit()
 {
-    m_deviceResources = std::make_unique<DeviceResources>(
-        DXGI_FORMAT_R8G8B8A8_UNORM,
-        DXGI_FORMAT_UNKNOWN,
-        FrameCount,
-        D3D_FEATURE_LEVEL_11_0,
-        // Sample shows handling of use cases with tearing support, which is OS dependent and has been supported since TH2.
-        // Since the sample requires build 1809 (RS5) or higher, we don't need to handle non-tearing cases.
-        DeviceResources::c_RequireTearingSupport,
-        m_adapterIDoverride
-        );
-    m_deviceResources->RegisterDeviceNotify(this);
-    m_deviceResources->SetWindow(Win32Application::GetHwnd(), m_width, m_height);
-    m_deviceResources->InitializeDXGIAdapter();
-
-    ThrowIfFalse(IsDirectXRaytracingSupported(m_deviceResources->GetAdapter()),
-        L"ERROR: DirectX Raytracing is not supported by your OS, GPU and/or driver.\n\n");
-
-    m_deviceResources->CreateDeviceResources();
-    m_deviceResources->CreateWindowSizeDependentResources();
+    DXSample::OnInit();
 
     CreateDeviceDependentResources();
     CreateWindowSizeDependentResources();
@@ -93,9 +75,6 @@ void D3D12RaytracingHelloWorld::CreateDeviceDependentResources()
 
     // Build shader tables, which define shaders and their local root arguments.
     BuildShaderTables();
-
-    // Create an output 2D texture to store the raytracing result to.
-    CreateRaytracingOutputResource();
 }
 
 void D3D12RaytracingHelloWorld::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
@@ -253,28 +232,6 @@ void D3D12RaytracingHelloWorld::CreateRaytracingPipelineStateObject()
 
     // Create the state object.
     ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
-}
-
-// Create 2D output texture for raytracing.
-void D3D12RaytracingHelloWorld::CreateRaytracingOutputResource()
-{
-    auto device = m_deviceResources->GetD3DDevice();
-    auto backbufferFormat = m_deviceResources->GetBackBufferFormat();
-
-    // Create the output resource. The dimensions and format should match the swap-chain.
-    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, m_width, m_height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
-    auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    ThrowIfFailed(device->CreateCommittedResource(
-        &defaultHeapProperties, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&m_raytracingOutput)));
-    NAME_D3D12_OBJECT(m_raytracingOutput);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
-    m_raytracingOutputResourceUAVDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, m_raytracingOutputResourceUAVDescriptorHeapIndex);
-    D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-    UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(m_raytracingOutput.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
-    m_raytracingOutputResourceUAVGpuDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), m_raytracingOutputResourceUAVDescriptorHeapIndex, m_descriptorSize);
 }
 
 void D3D12RaytracingHelloWorld::CreateDescriptorHeap()
@@ -786,7 +743,7 @@ void D3D12RaytracingHelloWorld::DoRaytracing()
     // Bind the heaps, acceleration structure and dispatch rays.    
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
     commandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
-    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, GetRayTracingOutputDescriptor());
     commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
     DispatchRays(m_dxrCommandList.Get(), m_dxrStateObject.Get(), &dispatchDesc);
 }
@@ -815,43 +772,10 @@ void D3D12RaytracingHelloWorld::UpdateForSizeChange(UINT width, UINT height)
     }
 }
 
-// Copy the raytracing output to the backbuffer.
-void D3D12RaytracingHelloWorld::CopyRaytracingOutputToBackbuffer()
-{
-    auto commandList= m_deviceResources->GetCommandList();
-    auto renderTarget = m_deviceResources->GetRenderTarget();
-
-    D3D12_RESOURCE_BARRIER preCopyBarriers[2];
-    preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-    preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_raytracingOutput.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
-
-    commandList->CopyResource(renderTarget, m_raytracingOutput.Get());
-
-    DxScreenShotBufferInfo* scBufInfo = m_deviceResources->GetScreenShotBufferInfo();
-    D3D12_TEXTURE_COPY_LOCATION dst = {};
-    dst.pResource = scBufInfo->m_stagingOutputResource.Get();
-    dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    dst.PlacedFootprint = scBufInfo->footPrint;
-
-    D3D12_TEXTURE_COPY_LOCATION src = {};
-    src.pResource = m_raytracingOutput.Get();
-    src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    src.SubresourceIndex = 0;
-
-    commandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-
-    D3D12_RESOURCE_BARRIER postCopyBarriers[2];
-    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
-    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_raytracingOutput.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-    commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
-}
-
 // Create resources that are dependent on the size of the main window.
 void D3D12RaytracingHelloWorld::CreateWindowSizeDependentResources()
 {
-    CreateRaytracingOutputResource(); 
+    CreateRaytracingOutputResource(m_descriptorHeap.Get()); 
 
     // For simplicity, we will rebuild the shader tables.
     BuildShaderTables();
@@ -877,8 +801,6 @@ void D3D12RaytracingHelloWorld::ReleaseDeviceDependentResources()
     m_dxrStateObject.Reset();
 
     m_descriptorHeap.Reset();
-    m_descriptorsAllocated = 0;
-    m_raytracingOutputResourceUAVDescriptorHeapIndex = UINT_MAX;
 
 
     m_indexBuffer[0].Reset();
@@ -909,84 +831,6 @@ void D3D12RaytracingHelloWorld::RecreateD3D()
         // Do nothing, currently attached adapter is unresponsive.
     }
     m_deviceResources->HandleDeviceLost();
-}
-
-// Render the scene.
-void D3D12RaytracingHelloWorld::OnRender()
-{
-    if (!m_deviceResources->IsWindowVisible())
-    {
-        return;
-    }
-
-    m_deviceResources->Prepare();
-    DoRaytracing();
-    CopyRaytracingOutputToBackbuffer();
-
-    m_deviceResources->Present(D3D12_RESOURCE_STATE_PRESENT);
-
-    DxScreenShotBufferInfo* scBufferInfo = m_deviceResources->GetScreenShotBufferInfo();
-    ID3D12Resource* pScreenShotRes       = scBufferInfo->m_stagingOutputResource.Get();
-    const UINT imgWidthInPixels          = scBufferInfo->width;
-    const UINT imgHeightInPixels         = scBufferInfo->height;
-    const UINT numRowsInFootprint        = scBufferInfo->numRows;
-    const UINT64 rowSizeInBuffer         = scBufferInfo->rowSize;
-
-    BYTE* pMappedData = NULL;
-    HRESULT mapResult = pScreenShotRes->Map(0, nullptr, (void **)&pMappedData);
-
-    // Remove the padding in the buffer. Can eliminate this step and combine it with BGRA to BMP Buffer step.
-    if (mapResult == S_OK)
-    {
-        BYTE* bgraBuffer = (BYTE*)malloc(numRowsInFootprint * rowSizeInBuffer);
-
-        for (UINT i = 0; i < numRowsInFootprint; i++)
-        {
-            memcpy(bgraBuffer + i * rowSizeInBuffer, pMappedData + i * scBufferInfo->footPrint.Footprint.RowPitch, rowSizeInBuffer);
-        }
-
-        UINT padding       = 0;
-        UINT scanlinebytes = imgWidthInPixels * 3;
-        UINT newSize = 0;
-        while ((scanlinebytes + padding) % 4 != 0)
-        {
-            padding++;
-        }
-
-        UINT psw = scanlinebytes + padding;
-        newSize = psw * imgHeightInPixels;
-
-        BYTE* bmpBuffer = (BYTE*)malloc(newSize);
-
-        memset(bmpBuffer, 0, newSize);
-
-        LONG bufpos = 0;
-        LONG bmppos = 0;
-        const UINT bgraBpp = 4;
-        for (UINT y = 0; y < imgHeightInPixels; y++)
-        {
-            UINT x2 = 0;
-            for (UINT x = 0; x < imgWidthInPixels; x++)
-            {
-                bufpos = y * bgraBpp * imgWidthInPixels + x * bgraBpp;
-                bmppos = (imgHeightInPixels - y - 1) * psw + x2;
-                x2 += 3;
-
-                bmpBuffer[bmppos + 2] = bgraBuffer[bufpos];
-                bmpBuffer[bmppos + 1] = bgraBuffer[bufpos + 1];
-                bmpBuffer[bmppos + 0] = bgraBuffer[bufpos + 2];
-            }
-        }
-
-        CHAR fullBmpPath[512];
-        sprintf_s(fullBmpPath, 512, "D:\\Grinphx_Labs\\DXR_Screenshots\\Test.bmp");
-        
-        DeviceResources::SaveImage(fullBmpPath, bmpBuffer, scBufferInfo->width, scBufferInfo->height);
-        pScreenShotRes->Unmap(0, nullptr);
-        free(bmpBuffer);
-        free(bgraBuffer);
-    }
-    
 }
 
 void D3D12RaytracingHelloWorld::OnDestroy()
@@ -1052,15 +896,12 @@ void D3D12RaytracingHelloWorld::OnSizeChanged(UINT width, UINT height, bool mini
     CreateWindowSizeDependentResources();
 }
 
-// Allocate a descriptor and return its index. 
-// If the passed descriptorIndexToUse is valid, it will be used instead of allocating a new one.
-UINT D3D12RaytracingHelloWorld::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse)
+ID3D12DescriptorHeap* D3D12RaytracingHelloWorld::GetOutputDescriptorHeap()
 {
-    auto descriptorHeapCpuBase = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    if (descriptorIndexToUse >= m_descriptorHeap->GetDesc().NumDescriptors)
-    {
-        descriptorIndexToUse = m_descriptorsAllocated++;
-    }
-    *cpuDescriptor = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeapCpuBase, descriptorIndexToUse, m_descriptorSize);
-    return descriptorIndexToUse;
+    return m_descriptorHeap.Get();
+}
+
+DXSample* CreateTestFunc(UINT width, UINT height, std::wstring name)
+{
+    return new D3D12RaytracingHelloWorld(width, height, name);
 }

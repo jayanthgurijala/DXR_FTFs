@@ -21,11 +21,18 @@ public:
     DXSample(UINT width, UINT height, std::wstring name);
     virtual ~DXSample();
 
-    virtual void OnInit() = 0;
+    virtual void OnInit();
     virtual void OnUpdate() = 0;
-    virtual void OnRender() = 0;
+
+    void OnRender();
+    void CopyRaytracingOutputToBackbuffer();
+    void CreateRaytracingOutputResource(ID3D12DescriptorHeap* descHeap);
+    virtual void DoRaytracing() = 0;
+
+
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized) = 0;
     virtual void OnDestroy() = 0;
+    virtual ID3D12DescriptorHeap* GetOutputDescriptorHeap() = 0;
 
     // Samples override the event handlers to handle specific messages.
     virtual void OnKeyDown(UINT8 /*key*/) {}
@@ -58,6 +65,7 @@ public:
 
 protected:
     void SetCustomWindowText(LPCWSTR text);
+    UINT AllocateDescriptor(ID3D12DescriptorHeap* descriptorHeap, D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
 
     // Viewport dimensions.
     UINT m_width;
@@ -70,14 +78,25 @@ protected:
     // Override to be able to start without Dx11on12 UI for PIX. PIX doesn't support 11 on 12. 
     bool m_enableUI;
     UINT m_numFrames;
+    bool m_dumpOutput;
     // D3D device resources
     UINT m_adapterIDoverride;
     std::unique_ptr<DX::DeviceResources> m_deviceResources;
+    ComPtr<ID3D12Resource> m_raytracingOutput;
 
+    inline D3D12_GPU_DESCRIPTOR_HANDLE GetRayTracingOutputDescriptor() { return m_raytracingOutputResourceUAVGpuDescriptor; }
+    inline UINT GetRayTracingOutputIndex() { return m_raytracingOutputResourceUAVDescriptorHeapIndex; }
+    inline UINT GetCbvUavSrvDescriptorSize() { return m_descriptorSize; }
 private:
+    static const UINT FrameCount = 3;
     // Root assets path.
     std::wstring m_assetsPath;
 
     // Window title.
     std::wstring m_title;
+    UINT m_descriptorsAllocated;
+    UINT m_descriptorSize;
+    // Raytracing output
+    D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
+    UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
 };

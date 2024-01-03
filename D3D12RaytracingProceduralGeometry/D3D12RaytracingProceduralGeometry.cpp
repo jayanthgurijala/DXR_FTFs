@@ -12,6 +12,7 @@
 #include "stdafx.h"
 #include "D3D12RaytracingProceduralGeometry.h"
 #include "CompiledShaders\Raytracing.hlsl.h"
+#include "FrameworkMain.h"
 
 using namespace std;
 using namespace DX;
@@ -47,13 +48,10 @@ const wchar_t* D3D12RaytracingProceduralGeometry::c_hitGroupNames_AABBGeometry[]
 
 D3D12RaytracingProceduralGeometry::D3D12RaytracingProceduralGeometry(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
-    m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
     m_animateGeometryTime(0.0f),
     m_animateCamera(false),
     m_animateGeometry(true),
     m_animateLight(false),
-    m_descriptorsAllocated(0),
-    m_descriptorSize(0),
     m_missShaderTableStrideInBytes(UINT_MAX),
     m_hitGroupShaderTableStrideInBytes(UINT_MAX)
 {
@@ -63,25 +61,7 @@ D3D12RaytracingProceduralGeometry::D3D12RaytracingProceduralGeometry(UINT width,
 
 void D3D12RaytracingProceduralGeometry::OnInit()
 {
-    m_deviceResources = std::make_unique<DeviceResources>(
-        DXGI_FORMAT_R8G8B8A8_UNORM,
-        DXGI_FORMAT_UNKNOWN,
-        FrameCount,
-        D3D_FEATURE_LEVEL_11_0,
-        // Sample shows handling of use cases with tearing support, which is OS dependent and has been supported since TH2.
-        // Since the sample requires build 1809 (RS5) or higher, we don't need to handle non-tearing cases.
-        DeviceResources::c_RequireTearingSupport,
-        m_adapterIDoverride
-        );
-    m_deviceResources->RegisterDeviceNotify(this);
-    m_deviceResources->SetWindow(Win32Application::GetHwnd(), m_width, m_height);
-    m_deviceResources->InitializeDXGIAdapter();
-
-    ThrowIfFalse(IsDirectXRaytracingSupported(m_deviceResources->GetAdapter()),
-        L"ERROR: DirectX Raytracing is not supported by your OS, GPU and/or driver.\n\n");
-
-    m_deviceResources->CreateDeviceResources();
-    m_deviceResources->CreateWindowSizeDependentResources();
+    DXSample::OnInit();
 
     InitializeScene();
 
@@ -310,9 +290,6 @@ void D3D12RaytracingProceduralGeometry::CreateDeviceDependentResources()
 
     // Build shader tables, which define shaders and their local root arguments.
     BuildShaderTables();
-
-    // Create an output 2D texture to store the raytracing result to.
-    CreateRaytracingOutputResource();
 }
 
 void D3D12RaytracingProceduralGeometry::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
@@ -517,28 +494,6 @@ void D3D12RaytracingProceduralGeometry::CreateRaytracingPipelineStateObject()
     ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
 }
 
-// Create a 2D output texture for raytracing.
-void D3D12RaytracingProceduralGeometry::CreateRaytracingOutputResource()
-{
-    auto device = m_deviceResources->GetD3DDevice();
-    auto backbufferFormat = m_deviceResources->GetBackBufferFormat();
-
-    // Create the output resource. The dimensions and format should match the swap-chain.
-    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, m_width, m_height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
-    auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    ThrowIfFailed(device->CreateCommittedResource(
-        &defaultHeapProperties, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&m_raytracingOutput)));
-    NAME_D3D12_OBJECT(m_raytracingOutput);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
-    m_raytracingOutputResourceUAVDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, m_raytracingOutputResourceUAVDescriptorHeapIndex);
-    D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-    UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(m_raytracingOutput.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
-    m_raytracingOutputResourceUAVGpuDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), m_raytracingOutputResourceUAVDescriptorHeapIndex, m_descriptorSize);
-}
-
 void D3D12RaytracingProceduralGeometry::CreateAuxilaryDeviceResources()
 {
     auto device = m_deviceResources->GetD3DDevice();
@@ -564,8 +519,6 @@ void D3D12RaytracingProceduralGeometry::CreateDescriptorHeap()
     descriptorHeapDesc.NodeMask = 0;
     device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&m_descriptorHeap));
     NAME_D3D12_OBJECT(m_descriptorHeap);
-
-    m_descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
 // Build AABBs for procedural geometry within a bottom-level acceleration structure.
@@ -1156,7 +1109,7 @@ void D3D12RaytracingProceduralGeometry::DoRaytracing()
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables.
         commandList->SetComputeRootDescriptorTable(GlobalRootSignature::Slot::VertexBuffers, m_indexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignature::Slot::OutputView, m_raytracingOutputResourceUAVGpuDescriptor);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignature::Slot::OutputView, GetRayTracingOutputDescriptor());
     };
 
     commandList->SetComputeRootSignature(m_raytracingGlobalRootSignature.Get());
@@ -1206,7 +1159,7 @@ void D3D12RaytracingProceduralGeometry::CopyRaytracingOutputToBackbuffer()
 // Create resources that are dependent on the size of the main window.
 void D3D12RaytracingProceduralGeometry::CreateWindowSizeDependentResources()
 {
-    CreateRaytracingOutputResource();
+    CreateRaytracingOutputResource(m_descriptorHeap.Get());
     UpdateCameraMatrices();
 }
 
@@ -1235,7 +1188,6 @@ void D3D12RaytracingProceduralGeometry::ReleaseDeviceDependentResources()
     ResetComPtrArray(&m_raytracingLocalRootSignature);
 
     m_descriptorHeap.Reset();
-    m_descriptorsAllocated = 0;
     m_sceneCB.Release();
     m_aabbPrimitiveAttributeBuffer.Release();
     m_indexBuffer.resource.Reset();
@@ -1246,7 +1198,6 @@ void D3D12RaytracingProceduralGeometry::ReleaseDeviceDependentResources()
     m_topLevelAS.Reset();
 
     m_raytracingOutput.Reset();
-    m_raytracingOutputResourceUAVDescriptorHeapIndex = UINT_MAX;
     m_rayGenShaderTable.Reset();
     m_missShaderTable.Reset();
     m_hitGroupShaderTable.Reset();
@@ -1264,36 +1215,6 @@ void D3D12RaytracingProceduralGeometry::RecreateD3D()
         // Do nothing, currently attached adapter is unresponsive.
     }
     m_deviceResources->HandleDeviceLost();
-}
-
-// Render the scene.
-void D3D12RaytracingProceduralGeometry::OnRender()
-{
-    if (!m_deviceResources->IsWindowVisible())
-    {
-        return;
-    }
-
-    auto device = m_deviceResources->GetD3DDevice();
-    auto commandList = m_deviceResources->GetCommandList();
-
-    // Begin frame.
-    m_deviceResources->Prepare();
-    for (auto& gpuTimer : m_gpuTimers)
-    {
-        gpuTimer.BeginFrame(commandList);
-    }
-
-    DoRaytracing();
-    CopyRaytracingOutputToBackbuffer();
-
-    // End frame.
-    for (auto& gpuTimer : m_gpuTimers)
-    {
-        //gpuTimer.EndFrame(commandList);
-    }
-
-    m_deviceResources->Present(D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void D3D12RaytracingProceduralGeometry::OnDestroy()
@@ -1361,19 +1282,6 @@ void D3D12RaytracingProceduralGeometry::OnSizeChanged(UINT width, UINT height, b
     CreateWindowSizeDependentResources();
 }
 
-// Allocate a descriptor and return its index. 
-// If the passed descriptorIndexToUse is valid, it will be used instead of allocating a new one.
-UINT D3D12RaytracingProceduralGeometry::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse)
-{
-    auto descriptorHeapCpuBase = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    if (descriptorIndexToUse >= m_descriptorHeap->GetDesc().NumDescriptors)
-    {
-        ThrowIfFalse(m_descriptorsAllocated < m_descriptorHeap->GetDesc().NumDescriptors, L"Ran out of descriptors on the heap!" );
-        descriptorIndexToUse = m_descriptorsAllocated++;
-    }
-    *cpuDescriptor = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeapCpuBase, descriptorIndexToUse, m_descriptorSize);
-    return descriptorIndexToUse;
-}
 
 // Create a SRV for a buffer.
 UINT D3D12RaytracingProceduralGeometry::CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize)
@@ -1397,8 +1305,18 @@ UINT D3D12RaytracingProceduralGeometry::CreateBufferSRV(D3DBuffer* buffer, UINT 
         srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
         srvDesc.Buffer.StructureByteStride = elementSize;
     }
-    UINT descriptorIndex = AllocateDescriptor(&buffer->cpuDescriptorHandle);
+    UINT descriptorIndex = AllocateDescriptor(m_descriptorHeap.Get(), & buffer->cpuDescriptorHandle);
     device->CreateShaderResourceView(buffer->resource.Get(), &srvDesc, buffer->cpuDescriptorHandle);
-    buffer->gpuDescriptorHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), descriptorIndex, m_descriptorSize);
+    buffer->gpuDescriptorHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), descriptorIndex, GetCbvUavSrvDescriptorSize());
     return descriptorIndex;
+}
+
+ID3D12DescriptorHeap* D3D12RaytracingProceduralGeometry::GetOutputDescriptorHeap()
+{
+    return m_descriptorHeap.Get();
+}
+
+DXSample* CreateTestFunc(UINT width, UINT height, std::wstring name)
+{
+    return new D3D12RaytracingProceduralGeometry(width, height, name);
 }

@@ -153,7 +153,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\Utils\pugixml_1_14\src\pugiconfig.hpp" />
     <ClInclude Include="..\..\Utils\pugixml_1_14\src\pugixml.hpp" />
-    <ClInclude Include="DirectXRaytracingHelper.h" />
     <ClInclude Include="HlslCompat.h" />
     <ClInclude Include="RaytracingHlslCompat.h" />
     <ClInclude Include="StepTimer.h" />
@@ -175,7 +174,6 @@
       </PrecompiledHeaderOutputFile>
     </ClCompile>
     <ClCompile Include="D3D12RaytracingHelloWorld.cpp" />
-    <ClCompile Include="Main.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

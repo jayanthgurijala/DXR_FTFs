@@ -161,7 +161,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AnalyticPrimitives.hlsli" />
-    <ClInclude Include="DirectXRaytracingHelper.h" />
     <ClInclude Include="ProceduralPrimitivesLibrary.hlsli" />
     <ClInclude Include="RaytracingSceneDefines.h" />
     <ClInclude Include="RaytracingHlslCompat.h" />
@@ -171,7 +170,6 @@
     <ClInclude Include="SignedDistancePrimitives.hlsli" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="util\DeviceResources.h" />
-    <ClInclude Include="util\DXSampleHelper.h" />
     <ClInclude Include="util\HlslCompat.h" />
     <ClInclude Include="util\PerformanceTimers.h" />
     <ClInclude Include="util\StepTimer.h" />
@@ -180,7 +178,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12RaytracingProceduralGeometry.cpp" />
-    <ClCompile Include="Main.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

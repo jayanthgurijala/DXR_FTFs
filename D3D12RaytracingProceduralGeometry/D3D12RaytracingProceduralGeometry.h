@@ -30,10 +30,10 @@ public:
     virtual void OnInit();
     virtual void OnKeyDown(UINT8 key);
     virtual void OnUpdate();
-    virtual void OnRender();
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual void OnDestroy();
     virtual IDXGISwapChain* GetSwapchain() { return m_deviceResources->GetSwapChain(); }
+    virtual ID3D12DescriptorHeap* GetOutputDescriptorHeap();
 
 private:
     static const UINT FrameCount = 3;
@@ -54,8 +54,7 @@ private:
 
     // Descriptors
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
-    UINT m_descriptorsAllocated;
-    UINT m_descriptorSize;
+
 
     // Raytracing scene
     ConstantBuffer<SceneConstantBuffer> m_sceneCB;
@@ -74,11 +73,6 @@ private:
     // Acceleration structure
     ComPtr<ID3D12Resource> m_bottomLevelAS[BottomLevelASType::Count];
     ComPtr<ID3D12Resource> m_topLevelAS;
-
-    // Raytracing output
-    ComPtr<ID3D12Resource> m_raytracingOutput;
-    D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
-    UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
 
     // Shader tables
     static const wchar_t* c_hitGroupNames_TriangleGeometry[RayType::Count];
@@ -125,7 +119,6 @@ private:
     void CreateRaytracingPipelineStateObject();
     void CreateAuxilaryDeviceResources();
     void CreateDescriptorHeap();
-    void CreateRaytracingOutputResource();
     void BuildProceduralGeometryAABBs();
     void BuildGeometry();
     void BuildPlaneGeometry();
@@ -139,6 +132,5 @@ private:
     void UpdateForSizeChange(UINT clientWidth, UINT clientHeight);
     void CopyRaytracingOutputToBackbuffer();
     void CalculateFrameStats();
-    UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
     UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);
 };

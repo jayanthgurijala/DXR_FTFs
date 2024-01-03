@@ -33,16 +33,10 @@
     <ClInclude Include="D3D12RaytracingProceduralGeometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXRaytracingHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="RaytracingHlslCompat.h">
       <Filter>Assets\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="util\DeviceResources.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="util\DXSampleHelper.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
     <ClInclude Include="util\StepTimer.h">
@@ -88,9 +82,6 @@
     </ClCompile>
     <ClCompile Include="util\PerformanceTimers.cpp">
       <Filter>Source Files\Util</Filter>
-    </ClCompile>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

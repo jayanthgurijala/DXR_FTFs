@@ -47,7 +47,7 @@ public:
     }
 
     struct PointerWithSize {
-        void *ptr;
+        void* ptr;
         UINT size;
 
         PointerWithSize() : ptr(nullptr), size(0) {}
@@ -69,7 +69,7 @@ class ShaderTable : public GpuUploadBuffer
 
     ShaderTable() {}
 public:
-    ShaderTable(ID3D12Device* device, UINT numShaderRecords, UINT shaderRecordSize, LPCWSTR resourceName = nullptr) 
+    ShaderTable(ID3D12Device* device, UINT numShaderRecords, UINT shaderRecordSize, LPCWSTR resourceName = nullptr)
         : m_name(resourceName)
     {
         m_shaderRecordSize = Align(shaderRecordSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
@@ -78,7 +78,7 @@ public:
         Allocate(device, bufferSize, resourceName);
         m_mappedShaderRecords = MapCpuWriteOnly();
     }
-    
+
     void push_back(const ShaderRecord& shaderRecord)
     {
         ThrowIfFalse(m_shaderRecords.size() < m_shaderRecords.capacity());
@@ -94,9 +94,9 @@ public:
     {
         std::wstringstream wstr;
         wstr << L"|--------------------------------------------------------------------\n";
-        wstr << L"|Shader table - " << m_name.c_str() << L": " 
-             << m_shaderRecordSize << L" | "
-             << m_shaderRecords.size() * m_shaderRecordSize << L" bytes\n";
+        wstr << L"|Shader table - " << m_name.c_str() << L": "
+            << m_shaderRecordSize << L" | "
+            << m_shaderRecords.size() * m_shaderRecordSize << L" bytes\n";
 
         for (UINT i = 0; i < m_shaderRecords.size(); i++)
         {
@@ -110,7 +110,7 @@ public:
     }
 };
 
-inline void AllocateUAVBuffer(ID3D12Device* pDevice, UINT64 bufferSize, ID3D12Resource **ppResource, D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_COMMON, const wchar_t* resourceName = nullptr)
+inline void AllocateUAVBuffer(ID3D12Device* pDevice, UINT64 bufferSize, ID3D12Resource** ppResource, D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_COMMON, const wchar_t* resourceName = nullptr)
 {
     auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
     auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -147,7 +147,7 @@ void DefineExports(T* obj, LPCWSTR(&Exports)[N][M])
 }
 
 
-inline void AllocateUploadBuffer(ID3D12Device* pDevice, void *pData, UINT64 datasize, ID3D12Resource **ppResource, const wchar_t* resourceName = nullptr)
+inline void AllocateUploadBuffer(ID3D12Device* pDevice, void* pData, UINT64 datasize, ID3D12Resource** ppResource, const wchar_t* resourceName = nullptr)
 {
     auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
     auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(datasize);
@@ -162,7 +162,7 @@ inline void AllocateUploadBuffer(ID3D12Device* pDevice, void *pData, UINT64 data
     {
         (*ppResource)->SetName(resourceName);
     }
-    void *pMappedData;
+    void* pMappedData;
     (*ppResource)->Map(0, nullptr, &pMappedData);
     memcpy(pMappedData, pData, datasize);
     (*ppResource)->Unmap(0, nullptr);
