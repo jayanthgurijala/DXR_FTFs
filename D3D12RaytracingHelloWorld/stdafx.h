@@ -41,6 +41,8 @@
 #include <atlbase.h>    // Make sure you install "C++ ATL for latest build tools" with VS Installer
 #include "d3dx12.h"
 
+#include <DirectXMath.h>
+
 #ifdef _DEBUG
 #include <dxgidebug.h>
 #endif

@@ -12,6 +12,13 @@
 #ifndef RAYTRACINGHLSLCOMPAT_H
 #define RAYTRACINGHLSLCOMPAT_H
 
+#ifdef HLSL
+#include "HlslCompat.h"
+#else
+using namespace DirectX;
+typedef UINT16 Index;
+#endif
+
 struct Viewport
 {
     float left;
@@ -29,6 +36,14 @@ struct RayGenConstantBuffer
 struct HelloWorldIntersectionAttrs
 {
     float attr;
+};
+
+// Attributes per primitive type.
+struct CircleAABBConstantBuffer
+{
+    float radius;
+    XMFLOAT3 center;
+    XMFLOAT4 color;
 };
 
 #endif // RAYTRACINGHLSLCOMPAT_H

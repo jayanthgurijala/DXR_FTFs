@@ -23,7 +23,8 @@ using namespace DirectX;
 
 const wchar_t* D3D12RaytracingHelloWorld::c_hitGroupName = L"MyHitGroup";
 const wchar_t* D3D12RaytracingHelloWorld::c_hitGroupNameRed = L"MyHitGroupRed";
-const wchar_t* D3D12RaytracingHelloWorld::c_hitGroupNameAABB = L"MyHitGroupAABB";
+const wchar_t* D3D12RaytracingHelloWorld::c_hitGroupNameAABB_1 = L"MyHitGroupAABB_1";
+const wchar_t* D3D12RaytracingHelloWorld::c_hitGroupNameAABB_2 = L"MyHitGroupAABB_2";
 const wchar_t* D3D12RaytracingHelloWorld::c_raygenShaderName = L"MyRaygenShader";
 const wchar_t* D3D12RaytracingHelloWorld::c_closestHitShaderName = L"MyClosestHitShader";
 const wchar_t* D3D12RaytracingHelloWorld::c_closestHitShaderNameRed = L"MyClosestHitShaderRed";
@@ -62,12 +63,7 @@ void D3D12RaytracingHelloWorld::CreateDeviceDependentResources()
 
     // Create a heap for descriptors.
     CreateDescriptorHeap();
-
-    // Build geometry to be used in the sample.
-    BuildModelGeometry(&m_vertexBuffer[0], &m_indexBuffer[0], TriangleModel, 0.5, 0, 0, 0.2f);
-    BuildModelGeometry(&m_vertexBuffer[1], &m_indexBuffer[1], SquareModel, 0.5, 1.0f, 0, 0.8f);
-    BuildModelGeometryAABB(&m_aabbBuffer, 0.5, 0, 1.0f, 1.0f);
-
+        
     CreateTestCase();
 
     // Build raytracing acceleration structures from the generated geometry.
@@ -109,7 +105,17 @@ void D3D12RaytracingHelloWorld::CreateRootSignatures()
         CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         localRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
         SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_raytracingLocalRootSignature);
+
     }
+
+    {
+        CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParamsAABB::Count];
+        rootParameters[LocalRootSignatureParamsAABB::CircleConstantsSlot].InitAsConstants(SizeOfInUint32(m_aabbCircleCB), 1, 0);
+        CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
+        localRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+        SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_raytracingLocalRootSigAABB_1);
+    }
+
 }
 
 // Create raytracing device and command list.
@@ -127,15 +133,32 @@ void D3D12RaytracingHelloWorld::CreateRaytracingInterfaces()
 void D3D12RaytracingHelloWorld::CreateLocalRootSignatureSubobjects(CD3DX12_STATE_OBJECT_DESC* raytracingPipeline)
 {
     // Hit group and miss shaders in this sample are not using a local root signature and thus one is not associated with them.
+    auto CreateAndAssociateLocalRootSig = [&](ID3D12RootSignature* rootSig, const wchar_t* shaderOrHitgroupName)
+    {
+        auto localRootSignature = raytracingPipeline->CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+        localRootSignature->SetRootSignature(rootSig);
+
+        auto rootSignatureAssociation = raytracingPipeline->CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+        rootSignatureAssociation->SetSubobjectToAssociate(*localRootSignature);
+        rootSignatureAssociation->AddExport(shaderOrHitgroupName);
+
+    };
+
+
+    CreateAndAssociateLocalRootSig(m_raytracingLocalRootSignature.Get(), c_raygenShaderName);
+    CreateAndAssociateLocalRootSig(m_raytracingLocalRootSigAABB_1.Get(), c_hitGroupNameAABB_1);
 
     // Local root signature to be used in a ray gen shader.
     {
+
         auto localRootSignature = raytracingPipeline->CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
         localRootSignature->SetRootSignature(m_raytracingLocalRootSignature.Get());
         // Shader association
         auto rootSignatureAssociation = raytracingPipeline->CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
         rootSignatureAssociation->SetSubobjectToAssociate(*localRootSignature);
         rootSignatureAssociation->AddExport(c_raygenShaderName);
+
+
     }
 }
 
@@ -198,7 +221,7 @@ void D3D12RaytracingHelloWorld::CreateRaytracingPipelineStateObject()
         auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
         hitGroup->SetClosestHitShaderImport(c_closestHitIntersectionShaderName);
         hitGroup->SetIntersectionShaderImport(c_intersectionShaderName);
-        hitGroup->SetHitGroupExport(c_hitGroupNameAABB);
+        hitGroup->SetHitGroupExport(c_hitGroupNameAABB_1);
         hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
     }
     
@@ -417,8 +440,34 @@ void D3D12RaytracingHelloWorld::GetTransform3x4Matrix(XMFLOAT3X4* transformMatri
     XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(transformMatrix), mTransform);
 }
 
+void D3D12RaytracingHelloWorld::CreateGeometry(FLOAT scale, FLOAT indexX, FLOAT indexY, FLOAT depth, BOOL autoincrIndex)
+{
+    UINT maxIndex = 1.0f / scale;
+
+    auto IncrementIndex = [&]()
+    {
+        indexX++;
+        if (indexX >= maxIndex)
+        {
+            indexY++;
+            indexX = 0;
+        }
+    };
+    // Build geometry to be used in the sample.
+    BuildModelGeometry(&m_vertexBuffer[0], &m_indexBuffer[0], TriangleModel, scale, indexX, indexY, depth);
+    IncrementIndex();
+
+    BuildModelGeometry(&m_vertexBuffer[1], &m_indexBuffer[1], SquareModel, scale, indexX, indexY, depth);
+    IncrementIndex();
+
+    BuildModelGeometryAABB(&m_aabbBuffer, scale, indexX, indexY, depth);
+}
+
+
 void D3D12RaytracingHelloWorld::CreateTestCase()
 {
+
+    CreateGeometry(0.5f, 0, 0, 1.0f, TRUE);
 
     auto AddGeometryDesc = [&](UINT index,
                                D3D12_RAYTRACING_GEOMETRY_TYPE geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES,
@@ -459,14 +508,17 @@ void D3D12RaytracingHelloWorld::CreateTestCase()
     AddGeometryDesc(0);
     AddGeometryDesc(1);
     AddGeometryDesc(0, D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS);
+    AddGeometryDesc(1, D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS);
 
     AddBlasDesc({ 0 });
     AddBlasDesc({ 1 });
     AddBlasDesc({ 2 }, D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS);
+    AddBlasDesc({ 3 }, D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS);
 
     AddTlasDesc(0);
     AddTlasDesc(1, 1);
     AddTlasDesc(2, 2);
+    AddTlasDesc(3, 3, 1.0f, 1.0f);
 }
 
 // Build acceleration structures needed for raytracing.
@@ -651,7 +703,7 @@ void D3D12RaytracingHelloWorld::BuildShaderTables()
     void* missShaderIdentifier;
     void* hitGroupShaderIdentifier;
     void* hitGroupShaderIdentifierRed;
-    void* hitGroupShaderIdentifierAABB;
+    void* hitGroupShaderIdentifierAABB_1;
 
 
     auto GetShaderIdentifiers = [&](auto* stateObjectProperties)
@@ -660,7 +712,7 @@ void D3D12RaytracingHelloWorld::BuildShaderTables()
         missShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_missShaderName);
         hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_hitGroupName);
         hitGroupShaderIdentifierRed = stateObjectProperties->GetShaderIdentifier(c_hitGroupNameRed);
-        hitGroupShaderIdentifierAABB = stateObjectProperties->GetShaderIdentifier(c_hitGroupNameAABB);
+        hitGroupShaderIdentifierAABB_1 = stateObjectProperties->GetShaderIdentifier(c_hitGroupNameAABB_1);
     };
 
     // Get shader identifiers.
@@ -682,7 +734,7 @@ void D3D12RaytracingHelloWorld::BuildShaderTables()
         UINT numShaderRecords = 1;
         UINT shaderRecordSize = shaderIdentifierSize + sizeof(rootArguments);
         ShaderTable rayGenShaderTable(device, numShaderRecords, shaderRecordSize, L"RayGenShaderTable");
-        rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize, &rootArguments, sizeof(rootArguments)));
+        rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize, &m_rayGenCB, sizeof(rootArguments)));
         m_rayGenShaderTable = rayGenShaderTable.GetResource();
     }
 
@@ -697,12 +749,24 @@ void D3D12RaytracingHelloWorld::BuildShaderTables()
 
     // Hit group shader table
     {
-        UINT numShaderRecords = 3;
+        m_hitGroupShaderStrideInBytes = shaderIdentifierSize + sizeof(m_aabbCircleCB);
+        UINT numShaderRecords = 4;
         UINT shaderRecordSize = shaderIdentifierSize;
-        ShaderTable hitGroupShaderTable(device, numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
-        hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize));
-        hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifierRed, shaderIdentifierSize));
-        hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifierAABB, shaderIdentifierSize));
+        
+        ShaderTable hitGroupShaderTable(device, numShaderRecords, m_hitGroupShaderStrideInBytes, L"HitGroupShaderTable");
+        hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize, nullptr, sizeof(m_aabbCircleCB)));
+        hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifierRed, shaderIdentifierSize, nullptr, sizeof(m_aabbCircleCB)));
+
+        m_aabbCircleCB.radius = 0.45f;
+        m_aabbCircleCB.center = XMFLOAT3(0.5f, -0.5f, -1.0f);
+        m_aabbCircleCB.color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+        hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifierAABB_1, shaderIdentifierSize, &m_aabbCircleCB, sizeof(m_aabbCircleCB)));
+        
+        m_aabbCircleCB.radius = 0.45f;
+        m_aabbCircleCB.center = XMFLOAT3(-0.5f, -0.5f, -1.0f);
+        m_aabbCircleCB.color = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+        hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifierAABB_1, shaderIdentifierSize, &m_aabbCircleCB, sizeof(m_aabbCircleCB)));
+        
         m_hitGroupShaderTable = hitGroupShaderTable.GetResource();
     }
 
@@ -725,7 +789,7 @@ void D3D12RaytracingHelloWorld::DoRaytracing()
         // Since each shader table has only one shader record, the stride is same as the size.
         dispatchDesc->HitGroupTable.StartAddress = m_hitGroupShaderTable->GetGPUVirtualAddress();
         dispatchDesc->HitGroupTable.SizeInBytes = m_hitGroupShaderTable->GetDesc().Width;
-        dispatchDesc->HitGroupTable.StrideInBytes = dispatchDesc->HitGroupTable.SizeInBytes / 3;
+        dispatchDesc->HitGroupTable.StrideInBytes = m_hitGroupShaderStrideInBytes;//dispatchDesc->HitGroupTable.SizeInBytes / 3;
         dispatchDesc->MissShaderTable.StartAddress = m_missShaderTable->GetGPUVirtualAddress();
         dispatchDesc->MissShaderTable.SizeInBytes = m_missShaderTable->GetDesc().Width;
         dispatchDesc->MissShaderTable.StrideInBytes = dispatchDesc->MissShaderTable.SizeInBytes;
@@ -752,7 +816,7 @@ void D3D12RaytracingHelloWorld::DoRaytracing()
 void D3D12RaytracingHelloWorld::UpdateForSizeChange(UINT width, UINT height)
 {
     DXSample::UpdateForSizeChange(width, height);
-    FLOAT border = 0.1f;
+    FLOAT border = 0.0f;
     if (m_width <= m_height)
     {
         m_rayGenCB.stencil =
@@ -901,7 +965,7 @@ ID3D12DescriptorHeap* D3D12RaytracingHelloWorld::GetOutputDescriptorHeap()
     return m_descriptorHeap.Get();
 }
 
-DXSample* CreateTestFunc(UINT width, UINT height, std::wstring name)
+DXSample* CreateTestFunc(UINT width, UINT height)
 {
-    return new D3D12RaytracingHelloWorld(width, height, name);
+    return new D3D12RaytracingHelloWorld(width, height, L"Hello World");
 }

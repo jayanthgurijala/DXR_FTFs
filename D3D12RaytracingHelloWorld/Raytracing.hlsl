@@ -12,11 +12,15 @@
 #ifndef RAYTRACING_HLSL
 #define RAYTRACING_HLSL
 
+#define HLSL
+
 #include "RaytracingHlslCompat.h"
+
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 RWTexture2D<float4> RenderTarget : register(u0);
 ConstantBuffer<RayGenConstantBuffer> g_rayGenCB : register(b0);
+ConstantBuffer<CircleAABBConstantBuffer> l_aabbCircleCB : register (b1);
 
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 struct RayPayload
@@ -42,7 +46,7 @@ void MyRaygenShader()
         lerp(g_rayGenCB.viewport.top, g_rayGenCB.viewport.bottom, lerpValues.y),
         0.0f);
 
-    //if (IsInsideViewport(origin.xy, g_rayGenCB.stencil))
+    if (IsInsideViewport(origin.xy, g_rayGenCB.stencil))
     {
         // Trace the ray.
         // Set the ray's extents.
@@ -59,11 +63,11 @@ void MyRaygenShader()
         // Write the raytraced color to the output texture.
         RenderTarget[DispatchRaysIndex().xy] = payload.color;
     }
-    //else
-    //{
+    else
+    {
         // Render interpolated DispatchRaysIndex outside the stencil window
-    //    RenderTarget[DispatchRaysIndex().xy] = float4(lerpValues, 0, 1);
-    //}
+        RenderTarget[DispatchRaysIndex().xy] = float4(lerpValues, 0, 1);
+    }
 }
 
 [shader("closesthit")]
@@ -84,7 +88,7 @@ void MyClosestHitIntersectionShader(inout RayPayload payload, in MyAttributes at
     uint hitKind = HitKind();
     if (hitKind == 0)
     {
-        payload.color = float4(0, 0, 1, 1);
+        payload.color = l_aabbCircleCB.color;
     }
     else
     {
@@ -104,11 +108,11 @@ void MyIntersectionShader()
     HelloWorldIntersectionAttrs attr = (HelloWorldIntersectionAttrs)0;
 
     //Center is 0,0
-    float3 worldRayOrigin = WorldRayOrigin() + float3(0.5f, -0.5f, -1.0f);
+    float3 worldRayOrigin = WorldRayOrigin() + float3(l_aabbCircleCB.center[0], l_aabbCircleCB.center[1], l_aabbCircleCB.center[2]);
+    //float3 worldRayOrigin = WorldRayOrigin() + float3(0.5f, -0.5f, -1.0f);
 
     // hard coded values need to be passed via constant buffer.
-    // -0.5, 0.5, 1.0
-    float Radius = 0.45f;
+    float Radius = l_aabbCircleCB.radius;
 
     float sqRadius = Radius * Radius; 
     float sqX = worldRayOrigin.x * worldRayOrigin.x;

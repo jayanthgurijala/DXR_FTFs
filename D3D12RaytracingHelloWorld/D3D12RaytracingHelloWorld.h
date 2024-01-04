@@ -35,6 +35,13 @@ namespace LocalRootSignatureParams {
     };
 }
 
+namespace LocalRootSignatureParamsAABB {
+    enum Value {
+        CircleConstantsSlot = 0,
+        Count
+    };
+}
+
 enum ModelGeometry
 {
     TriangleModel,
@@ -91,6 +98,8 @@ private:
     // Root signatures
     ComPtr<ID3D12RootSignature> m_raytracingGlobalRootSignature;
     ComPtr<ID3D12RootSignature> m_raytracingLocalRootSignature;
+    ComPtr<ID3D12RootSignature> m_raytracingLocalRootSigAABB_1;
+    ComPtr<ID3D12RootSignature> m_raytracingLocalRootSigAABB_2;
 
     // Descriptors
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
@@ -101,6 +110,7 @@ private:
     
     // Raytracing scene
     RayGenConstantBuffer m_rayGenCB;
+    CircleAABBConstantBuffer m_aabbCircleCB;
 
     // Geometry
     typedef UINT16 Index;
@@ -125,12 +135,15 @@ private:
     static const wchar_t* c_closestHitShaderNameRed;
     static const wchar_t* c_missShaderName;
     static const wchar_t* c_intersectionShaderName;
-    static const wchar_t* c_hitGroupNameAABB;
+    static const wchar_t* c_hitGroupNameAABB_1;
+    static const wchar_t* c_hitGroupNameAABB_2;
     static const wchar_t* c_closestHitIntersectionShaderName;
 
     ComPtr<ID3D12Resource> m_missShaderTable;
     ComPtr<ID3D12Resource> m_hitGroupShaderTable;
     ComPtr<ID3D12Resource> m_rayGenShaderTable;
+
+    UINT64 m_hitGroupShaderStrideInBytes;
     
     // Application state
     StepTimer m_timer;
@@ -183,4 +196,5 @@ private:
     void CopyRaytracingOutputToBackbuffer();
     void CalculateFrameStats();
     void CreateTestCase();
+    void CreateGeometry(FLOAT scale, FLOAT indexX, FLOAT indexY, FLOAT depth, BOOL autoIncrIndex);
 };

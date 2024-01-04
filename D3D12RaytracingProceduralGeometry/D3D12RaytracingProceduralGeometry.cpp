@@ -1316,7 +1316,7 @@ ID3D12DescriptorHeap* D3D12RaytracingProceduralGeometry::GetOutputDescriptorHeap
     return m_descriptorHeap.Get();
 }
 
-DXSample* CreateTestFunc(UINT width, UINT height, std::wstring name)
+DXSample* CreateTestFunc(UINT width, UINT height)
 {
-    return new D3D12RaytracingProceduralGeometry(width, height, name);
+    return new D3D12RaytracingProceduralGeometry(width, height, L"Procedural Geometry");
 }

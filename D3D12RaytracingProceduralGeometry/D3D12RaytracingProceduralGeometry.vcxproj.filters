@@ -36,13 +36,7 @@
     <ClInclude Include="RaytracingHlslCompat.h">
       <Filter>Assets\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="util\DeviceResources.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
     <ClInclude Include="util\StepTimer.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="util\Win32Application.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
     <ClInclude Include="RaytracingSceneDefines.h">

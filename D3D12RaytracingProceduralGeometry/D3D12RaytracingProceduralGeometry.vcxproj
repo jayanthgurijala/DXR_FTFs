@@ -169,11 +169,9 @@
     <ClInclude Include="SignedDistanceFractals.hlsli" />
     <ClInclude Include="SignedDistancePrimitives.hlsli" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="util\DeviceResources.h" />
     <ClInclude Include="util\HlslCompat.h" />
     <ClInclude Include="util\PerformanceTimers.h" />
     <ClInclude Include="util\StepTimer.h" />
-    <ClInclude Include="util\Win32Application.h" />
     <ClInclude Include="VolumetricPrimitives.hlsli" />
   </ItemGroup>
   <ItemGroup>
