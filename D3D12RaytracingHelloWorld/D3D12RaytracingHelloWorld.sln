@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GrfxTestFramework", "..\Grf
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3D12RaytracingProceduralGeometry", "..\D3D12RaytracingProceduralGeometry\D3D12RaytracingProceduralGeometry.vcxproj", "{0C266269-AC0C-41B0-9D25-0117DC23CFC7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3D12RaytracingSimpleLighting", "..\D3D12RaytracingSimpleLighting\D3D12RaytracingSimpleLighting.vcxproj", "{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{0C266269-AC0C-41B0-9D25-0117DC23CFC7}.Release|x64.Build.0 = Release|x64
 		{0C266269-AC0C-41B0-9D25-0117DC23CFC7}.Release|x86.ActiveCfg = Release|x64
 		{0C266269-AC0C-41B0-9D25-0117DC23CFC7}.Release|x86.Build.0 = Release|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Debug|x64.ActiveCfg = Debug|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Debug|x64.Build.0 = Debug|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Debug|x86.ActiveCfg = Debug|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Debug|x86.Build.0 = Debug|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Release|x64.ActiveCfg = Release|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Release|x64.Build.0 = Release|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Release|x86.ActiveCfg = Release|x64
+		{A0848C98-F5AA-431C-9E76-7F1E7EFA368C}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

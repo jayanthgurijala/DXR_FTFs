@@ -108,6 +108,22 @@ void DXSample::OnInit()
     //CreateRaytracingOutputResource(GetOutputDescriptorHeap());
 }
 
+void DXSample::GetTransform3x4Matrix(XMFLOAT3X4* transformMatrix,
+    float scaleX,
+    float scaleY,
+    float scaleZ,
+    float transformX,
+    float transformY,
+    float transformZ)
+{
+    const XMFLOAT3 a = XMFLOAT3(transformX, transformY, transformZ);
+    const XMVECTOR vBasePosition = XMLoadFloat3(&a);
+    XMMATRIX mScale = XMMatrixScaling(scaleX, scaleY, scaleZ);
+    XMMATRIX mTranslation = XMMatrixTranslationFromVector(vBasePosition);
+    XMMATRIX mTransform = mScale * mTranslation;
+    XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(transformMatrix), mTransform);
+}
+
 void DXSample::UpdateForSizeChange(UINT clientWidth, UINT clientHeight)
 {
     m_width = clientWidth;

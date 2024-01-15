@@ -11,9 +11,39 @@
 
 #pragma once
 
+#include "pch.h"
 #include "DXSampleHelper.h"
 #include "Win32Application.h"
 #include "DeviceResources.h"
+
+using namespace DirectX;
+
+enum ModelGeometry
+{
+    TriangleModel,
+    SquareModel,
+    AABBModel
+};
+
+struct GeomDesc
+{
+    int geomIndex;
+    D3D12_RAYTRACING_GEOMETRY_TYPE geomType;
+    D3D12_RAYTRACING_GEOMETRY_FLAGS flags;
+};
+
+struct DxBlasDesc
+{
+    std::vector<int> geomIndices;
+    D3D12_RAYTRACING_GEOMETRY_TYPE geomType;
+};
+
+struct DxTlasDesc
+{
+    UINT blasIndex;
+    UINT instanceContributionToHitIndex;
+    DirectX::XMFLOAT3X4 transformMatrix;
+};
 
 class DXSample : public DX::IDeviceNotify
 {
@@ -66,7 +96,13 @@ public:
 protected:
     void SetCustomWindowText(LPCWSTR text);
     UINT AllocateDescriptor(ID3D12DescriptorHeap* descriptorHeap, D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
-
+    void GetTransform3x4Matrix(XMFLOAT3X4* transformMatrix,
+        float scaleX,
+        float scaleY,
+        float scaleZ,
+        float transformX,
+        float transformY,
+        float transformZ);
     // Viewport dimensions.
     UINT m_width;
     UINT m_height;
