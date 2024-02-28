@@ -98,6 +98,7 @@ private:
     };
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
+    D3DBuffer m_aabbBuffer;
 
     // Acceleration structure
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
@@ -111,14 +112,31 @@ private:
     UINT m_hitGroupShaderStride;
 
     // Shader tables
+
+    static const wchar_t* c_floorClosestHitShaderName;
+    static const wchar_t* c_cubeClosestHitShaderName;
+    static const wchar_t* c_cubeClosestHitShadowShaderName;
+    static const wchar_t* c_floorClosestHitShadowShaderName;
+
     static const wchar_t* c_floorHitGroupName;
-    static const wchar_t* c_shadowHitGroupName;
     static const wchar_t* c_cubeHitGroupName;
+
+    static const wchar_t* c_cubeShadowHitGroupName;
+    static const wchar_t* c_floorShadowHitGroupName;
+
+    static const wchar_t* c_sphereAABBHitGroup;
+    static const wchar_t* c_sphereShadowAABBHitGroup;
+    static const wchar_t* c_sphereAABBIntersectionShaderName;
+    static const wchar_t* c_sphereAABBClosestHitShaderName;
+
+
+    static const wchar_t* c_sphereIntersectionShader;
+    static const wchar_t* c_sphereClosestHitShader;
+
     static const wchar_t* c_raygenShaderName;
-    static const wchar_t* c_closestHitShadowShaderName;
-    static const wchar_t* c_closestHitShaderName;
     static const wchar_t* c_missShaderName;
     static const wchar_t* c_missShaderShadowName;
+
     ComPtr<ID3D12Resource> m_missShaderTable;
     ComPtr<ID3D12Resource> m_hitGroupShaderTable;
     ComPtr<ID3D12Resource> m_rayGenShaderTable;
@@ -155,4 +173,5 @@ private:
     UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
     UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);
     void CreateTestCase();
+    D3D12_RAYTRACING_AABB GetAABBForSphere(XMFLOAT3 center, FLOAT radius);
 };

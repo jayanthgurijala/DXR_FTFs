@@ -29,6 +29,11 @@ struct Ray
     float3 direction;
 };
 
+struct HelloWorldIntersectionAttrs
+{
+    float attr;
+};
+
 // Load three 16 bit indices from a byte addressed buffer.
 uint3 Load3x16BitIndices(uint offsetBytes)
 {
@@ -120,7 +125,7 @@ float4 TraceRadianceRay(in Ray ray, in UINT currentRayRecursionDepth)
     rayDesc.TMax = 10000;
 
     RayPayload rayPayload = { float4(0, 0, 0, 0), currentRayRecursionDepth + 1 };
-    TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, rayDesc, rayPayload);
+    TraceRay(Scene, RAY_FLAG_NONE, ~0, 0, 1, 0, rayDesc, rayPayload);
     return rayPayload.color;
 }
 
@@ -131,14 +136,21 @@ bool TraceShadowRayAndReportIfHit(in Ray ray, in UINT currentRecursionDepth)
         return false;
     }
 
+    ShadowRayPayload shadowRayPayload = { false };
+
     // Set the ray's extents.
     RayDesc rayDesc;
     rayDesc.Origin = ray.origin;
     rayDesc.Direction = ray.direction;
-    rayDesc.TMin = 0;
+    rayDesc.TMin = 0.5;
     rayDesc.TMax = 10000;
+    TraceRay(Scene,
+        RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
+        | RAY_FLAG_FORCE_OPAQUE             // ~skip any hit shaders
+          , ~0, 1, 0, 1, rayDesc, shadowRayPayload);
 
-    return true;
+
+    return shadowRayPayload.hit;
 }
 
 [shader("raygeneration")]
@@ -163,7 +175,7 @@ void MyRaygenShader()
 }
 
 [shader("closesthit")]
-void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
+void FloorClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
     float3 hitPosition = HitWorldPosition();
 
@@ -191,7 +203,47 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float4 diffuseColor = CalculateDiffuseLighting(hitPosition, triangleNormal);
     float4 color = diffuseColor;
 
-    payload.color = color;
+    Ray shadowRay = { hitPosition, normalize(g_sceneCB.lightPosition.xyz - hitPosition) };
+    
+    // true if a geometry is hit and light is obstruced = Shadow
+    bool hitgeom = TraceShadowRayAndReportIfHit(shadowRay, payload.recursionDepth);
+    payload.color = color - color * hitgeom * 0.4f;
+}
+
+[shader("closesthit")]
+void CubeClosestHitShader(inout RayPayload payload, in MyAttributes attr)
+{
+    float3 hitPosition = HitWorldPosition();
+
+    // Get the base index of the triangle's first 16 bit index.
+    uint indexSizeInBytes = 2;
+    uint indicesPerTriangle = 3;
+    uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
+    uint baseIndex = PrimitiveIndex() * triangleIndexStride;
+
+    // Load up 3 16 bit indices for the triangle.
+    const uint3 indices = Load3x16BitIndices(baseIndex);
+
+    // Retrieve corresponding vertex normals for the triangle vertices.
+    float3 vertexNormals[3] = {
+        Vertices[indices[0]].normal,
+        Vertices[indices[1]].normal,
+        Vertices[indices[2]].normal
+    };
+
+    // Compute the triangle's normal.
+    // This is redundant and done for illustration purposes 
+    // as all the per-vertex normals are the same and match triangle's normal in this sample. 
+    float3 triangleNormal = HitAttribute(vertexNormals, attr);
+
+    float4 diffuseColor = CalculateDiffuseLighting(hitPosition, triangleNormal);
+    float4 color = diffuseColor;
+
+    Ray shadowRay = { hitPosition, normalize(g_sceneCB.lightPosition.xyz - hitPosition) };
+
+    // true if a geometry is hit and light is obstruced = Shadow
+    bool hitgeom = TraceShadowRayAndReportIfHit(shadowRay, payload.recursionDepth);
+    payload.color = color - color * hitgeom * 0.1f;
 }
 
 [shader("miss")]
@@ -208,11 +260,46 @@ void MyMissShader_Shadow(inout ShadowRayPayload payload)
 }
 
 [shader("closesthit")]
-void MyClosestHitShader_Shadow(inout ShadowRayPayload payload, in MyAttributes attr)
+void FloorClosestHitShader_Shadow(inout ShadowRayPayload payload, in MyAttributes attr)
 {
     payload.hit = true;
 }
 
+[shader("closesthit")]
+void CubeClosestHitShader_Shadow(inout ShadowRayPayload payload, in MyAttributes attr)
+{
+    payload.hit = true;
+}
 
+[shader("intersection")]
+void SphereIntersectionShader()
+{
+    HelloWorldIntersectionAttrs attr = (HelloWorldIntersectionAttrs)0;
+    float3 rayOrigin = ObjectRayOrigin();
+    float3 rayDirection = ObjectRayDirection();
+    float sphereRadius = 1.0f;
+
+    float3 oc = rayOrigin - float3(0, 0, 0);// sphere.center;
+    float a = dot(rayDirection, rayDirection);
+    float b = 2.0 * dot(oc, rayDirection);
+    float c = dot(oc, oc) - (sphereRadius * sphereRadius);
+    float discriminant = b * b - 4 * a * c;
+    // Find the nearest intersection point along the ray
+    float t0 = (-b - sqrt(discriminant)) / (2.0 * a);
+    float t1 = (-b + sqrt(discriminant)) / (2.0 * a);
+    float t = (t0 < t1) ? t0 : t1;
+    float3 normal = normalize(rayOrigin + t * rayDirection); //- sphereCenter
+    float3 lightDirection = float3(0, 0, -1);
+    float diffuseLight = dot(normal, lightDirection);
+    attr.attr = diffuseLight;
+    ReportHit(t, 0, attr);
+}
+
+
+[shader("closesthit")]
+void SphereClosestHitShader(inout RayPayload payload, HelloWorldIntersectionAttrs attr)
+{
+    payload.color = float4(0.8f, 0.3f, 0.3f, 1.0f) * attr.attr + float4(0.2f, 0.1f, 0.2f, 1.0f);
+}
 
 #endif // RAYTRACING_HLSL

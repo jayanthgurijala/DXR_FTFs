@@ -17,14 +17,28 @@
 using namespace std;
 using namespace DX;
 
-const wchar_t* D3D12RaytracingSimpleLighting::c_cubeHitGroupName = L"MyCubeHitGroup";
-const wchar_t* D3D12RaytracingSimpleLighting::c_floorHitGroupName = L"MyFloorHitGroup";
-const wchar_t* D3D12RaytracingSimpleLighting::c_shadowHitGroupName = L"MyShadowHitGroup";
+
+
+const wchar_t* D3D12RaytracingSimpleLighting::c_cubeClosestHitShaderName = L"CubeClosestHitShader";
+const wchar_t* D3D12RaytracingSimpleLighting::c_floorClosestHitShaderName = L"FloorClosestHitShader";
+const wchar_t* D3D12RaytracingSimpleLighting::c_floorClosestHitShadowShaderName = L"FloorClosestHitShader_Shadow";
+const wchar_t* D3D12RaytracingSimpleLighting::c_cubeClosestHitShadowShaderName = L"CubeClosestHitShader_Shadow";
+
+const wchar_t* D3D12RaytracingSimpleLighting::c_cubeHitGroupName = L"CubeHitGroup";
+const wchar_t* D3D12RaytracingSimpleLighting::c_floorHitGroupName = L"FloorHitGroup";
+const wchar_t* D3D12RaytracingSimpleLighting::c_cubeShadowHitGroupName = L"CubeShadowHitGroup";
+const wchar_t* D3D12RaytracingSimpleLighting::c_floorShadowHitGroupName = L"FloorShadowHitGroup";
+
 const wchar_t* D3D12RaytracingSimpleLighting::c_raygenShaderName = L"MyRaygenShader";
-const wchar_t* D3D12RaytracingSimpleLighting::c_closestHitShaderName = L"MyClosestHitShader";
-const wchar_t* D3D12RaytracingSimpleLighting::c_closestHitShadowShaderName = L"MyClosestHitShader_Shadow";
 const wchar_t* D3D12RaytracingSimpleLighting::c_missShaderName = L"MyMissShader";
 const wchar_t* D3D12RaytracingSimpleLighting::c_missShaderShadowName = L"MyMissShader_Shadow";
+
+//For AABB geomery
+const wchar_t* D3D12RaytracingSimpleLighting::c_sphereAABBHitGroup = L"SphereAABBHitGroup";
+const wchar_t* D3D12RaytracingSimpleLighting::c_sphereShadowAABBHitGroup = L"SphereShadowAABBHitGroup";
+const wchar_t* D3D12RaytracingSimpleLighting::c_sphereAABBIntersectionShaderName = L"SphereIntersectionShader";
+const wchar_t* D3D12RaytracingSimpleLighting::c_sphereAABBClosestHitShaderName = L"SphereClosestHitShader";
+
 
 D3D12RaytracingSimpleLighting::D3D12RaytracingSimpleLighting(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -303,9 +317,16 @@ void D3D12RaytracingSimpleLighting::CreateRaytracingPipelineStateObject()
     // In this sample, this could be ommited for convenience since the sample uses all shaders in the library. 
     {
         lib->DefineExport(c_raygenShaderName);
-        lib->DefineExport(c_closestHitShaderName);
+        lib->DefineExport(c_floorClosestHitShaderName);
+        lib->DefineExport(c_cubeClosestHitShaderName);
+
+        lib->DefineExport(c_floorClosestHitShadowShaderName);
+        lib->DefineExport(c_cubeClosestHitShadowShaderName);
+
+        lib->DefineExport(c_sphereAABBClosestHitShaderName);
+        lib->DefineExport(c_sphereAABBIntersectionShaderName);
+
         lib->DefineExport(c_missShaderName);
-        lib->DefineExport(c_closestHitShadowShaderName);
         lib->DefineExport(c_missShaderShadowName);
     }
     
@@ -314,7 +335,7 @@ void D3D12RaytracingSimpleLighting::CreateRaytracingPipelineStateObject()
         // A hit group specifies closest hit, any hit and intersection shaders to be executed when a ray intersects the geometry's triangle/AABB.
         // In this sample, we only use triangle geometry with a closest hit shader, so others are not set.
         auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-        hitGroup->SetClosestHitShaderImport(c_closestHitShaderName);
+        hitGroup->SetClosestHitShaderImport(c_cubeClosestHitShaderName);
         hitGroup->SetHitGroupExport(c_cubeHitGroupName);
         hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
     }
@@ -322,16 +343,39 @@ void D3D12RaytracingSimpleLighting::CreateRaytracingPipelineStateObject()
     {
         // Triangle hit group for floor
         auto hitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-        hitGroup->SetClosestHitShaderImport(c_closestHitShaderName);
+        hitGroup->SetClosestHitShaderImport(c_floorClosestHitShaderName);
         hitGroup->SetHitGroupExport(c_floorHitGroupName);
         hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
     }
 
     {
         auto shadowHitGroup = raytracingPipeline.CreateSubobject< CD3DX12_HIT_GROUP_SUBOBJECT>();
-        shadowHitGroup->SetClosestHitShaderImport(c_closestHitShadowShaderName);
-        shadowHitGroup->SetHitGroupExport(c_shadowHitGroupName);
+        shadowHitGroup->SetClosestHitShaderImport(c_cubeClosestHitShadowShaderName);
+        shadowHitGroup->SetHitGroupExport(c_cubeShadowHitGroupName);
         shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+    }
+
+    {
+        auto shadowHitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+        shadowHitGroup->SetClosestHitShaderImport(c_floorClosestHitShadowShaderName);
+        shadowHitGroup->SetHitGroupExport(c_floorShadowHitGroupName);
+        shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+    }
+
+    {
+        auto aabbHitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+        aabbHitGroup->SetClosestHitShaderImport(c_sphereAABBClosestHitShaderName);
+        aabbHitGroup->SetIntersectionShaderImport(c_sphereAABBIntersectionShaderName);
+        aabbHitGroup->SetHitGroupExport(c_sphereAABBHitGroup);
+        aabbHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
+    }
+
+    {
+        auto aabbShadowHitGroup = raytracingPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+        aabbShadowHitGroup->SetIntersectionShaderImport(c_sphereAABBIntersectionShaderName);
+        aabbShadowHitGroup->SetClosestHitShaderImport(c_cubeClosestHitShadowShaderName);
+        aabbShadowHitGroup->SetHitGroupExport(c_sphereShadowAABBHitGroup);
+        aabbShadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
     }
     
     // Shader config
@@ -470,6 +514,10 @@ void D3D12RaytracingSimpleLighting::BuildGeometry()
     AllocateUploadBuffer(device, indices, sizeof(indices), &m_indexBuffer.resource);
     AllocateUploadBuffer(device, vertices, sizeof(vertices), &m_vertexBuffer.resource);
 
+    XMFLOAT3 center = XMFLOAT3(0, 0, 0);
+    D3D12_RAYTRACING_AABB aabbBox = GetAABBForSphere(center, 1.0f);
+    AllocateUploadBuffer(device, &aabbBox, sizeof(aabbBox), &m_aabbBuffer.resource);
+
     // Vertex buffer is passed to the shader along with index buffer as a descriptor table.
     // Vertex buffer descriptor must follow index buffer descriptor in the descriptor heap.
     UINT descriptorIndexIB = CreateBufferSRV(&m_indexBuffer, sizeof(indices)/4, 0);
@@ -477,11 +525,21 @@ void D3D12RaytracingSimpleLighting::BuildGeometry()
     ThrowIfFalse(descriptorIndexVB == descriptorIndexIB + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
 }
 
+D3D12_RAYTRACING_AABB D3D12RaytracingSimpleLighting::GetAABBForSphere(XMFLOAT3 center, FLOAT radius)
+{
+    D3D12_RAYTRACING_AABB aabb;
+    aabb.MaxX = center.x + radius;
+    aabb.MaxY = center.y + radius;
+    aabb.MaxZ = center.z + radius;
+    aabb.MinX = center.x - radius;
+    aabb.MinY = center.y - radius;
+    aabb.MinZ = center.z - radius;
+
+    return aabb;
+}
+
 void D3D12RaytracingSimpleLighting::CreateTestCase()
 {
-
-    //CreateGeometry(0.5f, 0, 0, 1.0f, TRUE);
-
     auto AddGeometryDesc = [&](UINT index,
         D3D12_RAYTRACING_GEOMETRY_TYPE geomType = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES,
         D3D12_RAYTRACING_GEOMETRY_FLAGS flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE)
@@ -520,15 +578,18 @@ void D3D12RaytracingSimpleLighting::CreateTestCase()
         m_listOfTlasDesc.push_back(tlasDesc);
     };
 
-    AddGeometryDesc(0);
-    AddGeometryDesc(0);
+    AddGeometryDesc(0); //index 0
+    AddGeometryDesc(0); //index 1
+    AddGeometryDesc(0, D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS);
 
 
     AddBlasDesc({ 0 });
     AddBlasDesc({ 1 });
+    AddBlasDesc({ 2 });
 
-    AddTlasDesc(0);
-    AddTlasDesc(1, 1, 20.0f, 0.2f, 20.0f, 0, -2, 0);
+    AddTlasDesc(0, 0, 1.0f, 1.0f, 1.0, 2, 2);
+    AddTlasDesc(1, 2, 20.0f, 0.2f, 20.0f, 0, -1, 0);
+    AddTlasDesc(2, 4, 1.0f, 1.0f, 1.0f, -0.5f, 0.8f, 0.5f);
 }
 
 // Build acceleration structures needed for raytracing.
@@ -567,12 +628,12 @@ void D3D12RaytracingSimpleLighting::BuildAccelerationStructures()
             geomDesc->Triangles.VertexBuffer.StartAddress = vertexBuffer->GetGPUVirtualAddress();
             geomDesc->Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
         }
-        //else //Type_AABB
-        //{
-        //    geomDesc->AABBs.AABBCount = 1;
-        //    geomDesc->AABBs.AABBs.StartAddress = m_aabbBuffer->GetGPUVirtualAddress();
-        //    geomDesc->AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
-        //}
+        else //Type_AABB
+        {
+            geomDesc->AABBs.AABBCount = 1;
+            geomDesc->AABBs.AABBs.StartAddress = m_aabbBuffer.resource->GetGPUVirtualAddress();
+            geomDesc->AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
+        }
 
         // Mark the geometry as opaque. 
         // PERFORMANCE TIP: mark geometry as opaque whenever applicable as it can enable important ray processing optimizations.
@@ -710,11 +771,21 @@ void D3D12RaytracingSimpleLighting::BuildShaderTables()
     auto device = m_deviceResources->GetD3DDevice();
 
     void* rayGenShaderIdentifier;
+    
     void* missShaderIdentifier;
     void* missShaderShadowIdentifier;
+
     void* cubeHitGroupShaderIdentifier;
+    void* cubeShadowHitGroupShaderIdentifier;
+
+
     void* floorHitGroupShaderIdentifier;
-    void* shadowHitGroupShaderIdentifier;
+    void* floorShadowHitGroupShaderIdentifier;
+
+    void* sphereHitGroupShaderIdentifier;
+    void* sphereShadowHitGroupShaderIdentifier;
+
+
 
     auto GetShaderIdentifiers = [&](auto* stateObjectProperties)
     {
@@ -723,7 +794,10 @@ void D3D12RaytracingSimpleLighting::BuildShaderTables()
         missShaderShadowIdentifier = stateObjectProperties->GetShaderIdentifier(c_missShaderShadowName);
         cubeHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_cubeHitGroupName);
         floorHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_floorHitGroupName);
-        shadowHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_shadowHitGroupName);
+        cubeShadowHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_cubeShadowHitGroupName);
+        floorShadowHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_floorShadowHitGroupName);
+        sphereHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_sphereAABBHitGroup);
+        sphereShadowHitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_sphereShadowAABBHitGroup);
     };
 
     // Get shader identifiers.
@@ -761,16 +835,19 @@ void D3D12RaytracingSimpleLighting::BuildShaderTables()
         } rootArguments;
         rootArguments.cb = m_cubeCB;
 
-        UINT numShaderRecords = 3;
+        UINT numShaderRecords = 6;
         UINT shaderRecordSize = shaderIdentifierSize + sizeof(rootArguments);
         m_hitGroupShaderStride = shaderRecordSize;
         ShaderTable hitGroupShaderTable(device, numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
         hitGroupShaderTable.push_back(ShaderRecord(cubeHitGroupShaderIdentifier, shaderIdentifierSize, &rootArguments, sizeof(rootArguments)));
-        
+        hitGroupShaderTable.push_back(ShaderRecord(cubeShadowHitGroupShaderIdentifier, shaderIdentifierSize, nullptr, sizeof(rootArguments)));
+
         rootArguments.cb.albedo = XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f);
         hitGroupShaderTable.push_back(ShaderRecord(floorHitGroupShaderIdentifier, shaderIdentifierSize, &rootArguments, sizeof(rootArguments)));
+        hitGroupShaderTable.push_back(ShaderRecord(floorShadowHitGroupShaderIdentifier, shaderIdentifierSize, nullptr, sizeof(rootArguments)));
 
-        hitGroupShaderTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize, nullptr, sizeof(rootArguments)));
+        hitGroupShaderTable.push_back(ShaderRecord(sphereHitGroupShaderIdentifier, shaderIdentifierSize, nullptr, sizeof(rootArguments)));
+        hitGroupShaderTable.push_back(ShaderRecord(sphereShadowHitGroupShaderIdentifier, shaderIdentifierSize, nullptr, sizeof(rootArguments)));
 
         m_hitGroupShaderTable = hitGroupShaderTable.GetResource();
     }
@@ -781,7 +858,7 @@ void D3D12RaytracingSimpleLighting::OnUpdate()
 {
     m_timer.Tick();
     CalculateFrameStats();
-    float elapsedTime = static_cast<float>(m_timer.GetElapsedSeconds());
+    float elapsedTime = 0;// static_cast<float>(m_timer.GetElapsedSeconds());
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
     auto prevFrameIndex = m_deviceResources->GetPreviousFrameIndex();
 
@@ -798,11 +875,11 @@ void D3D12RaytracingSimpleLighting::OnUpdate()
 
     // Rotate the second light around Y axis.
     {
-        float secondsToRotateAround = 8.0f;
-        float angleToRotateBy = -360.0f * (elapsedTime / secondsToRotateAround);
-        XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(angleToRotateBy));
-        const XMVECTOR& prevLightPosition = m_sceneCB[prevFrameIndex].lightPosition;
-        m_sceneCB[frameIndex].lightPosition = XMVector3Transform(prevLightPosition, rotate);
+        //float secondsToRotateAround = 8.0f;
+        //float angleToRotateBy = -360.0f * (elapsedTime / secondsToRotateAround);
+        //XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(angleToRotateBy));
+        //const XMVECTOR& prevLightPosition = m_sceneCB[prevFrameIndex].lightPosition;
+        //m_sceneCB[frameIndex].lightPosition = XMVector3Transform(prevLightPosition, rotate);
     }
 }
 
